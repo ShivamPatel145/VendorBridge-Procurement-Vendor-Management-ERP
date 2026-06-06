@@ -13,9 +13,9 @@ const config: Config = {
     extend: {
       colors: {
         app: {
-          bg: '#0B0F14',
-          card: '#111827',
-          border: '#1F2937',
+          bg: 'hsl(var(--background))',
+          card: 'hsl(var(--card))',
+          border: 'hsl(var(--border))',
         },
         primary: {
           50: '#ecfdf5',

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { Loader2, Eye, EyeOff, ShieldCheck, BarChart3, Building2, CheckCircle2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Sun, Moon, ArrowRight, ShieldCheck, Activity, Zap } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import Image from 'next/image';
@@ -17,238 +18,208 @@ const loginSchema = z.object({
 });
 type LoginForm = z.infer<typeof loginSchema>;
 
-const demoCredentials = [
-  { role: 'Admin', email: 'admin@vendorbridge.demo', pass: 'Admin@123', desc: 'Full system access & settings' },
-  { role: 'Procurement Officer', email: 'officer@vendorbridge.demo', pass: 'Officer@123', desc: 'Manage RFQs & POs' },
-  { role: 'Manager', email: 'manager@vendorbridge.demo', pass: 'Manager@123', desc: 'Approve workflows' },
-  { role: 'Vendor', email: 'vendor@vendorbridge.demo', pass: 'Vendor@123', desc: 'Submit quotations' },
+const demoUsers = [
+  { role: 'Admin', email: 'admin@vendorbridge.demo', pass: 'Admin@123' },
+  { role: 'Procurement', email: 'officer@vendorbridge.demo', pass: 'Officer@123' },
+  { role: 'Manager', email: 'manager@vendorbridge.demo', pass: 'Manager@123' },
+  { role: 'Vendor', email: 'vendor@vendorbridge.demo', pass: 'Vendor@123' },
 ];
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <div className="w-9 h-9" />;
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="w-9 h-9 rounded-lg flex items-center justify-center border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      aria-label="Toggle theme"
+    >
+      {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+    </button>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onSubmit = async (values: LoginForm) => {
-    // Mock login since backend is down
-    setIsDemoLoading(true);
-    try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const roleStr = values.email.split('@')[0].toUpperCase();
-      let role = 'PROCUREMENT_OFFICER';
-      if (roleStr.includes('ADMIN')) role = 'ADMIN';
-      else if (roleStr.includes('MANAGER')) role = 'MANAGER';
-      else if (roleStr.includes('VENDOR')) role = 'VENDOR';
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 900));
+    const prefix = values.email.split('@')[0].toLowerCase();
+    let role = 'PROCUREMENT_OFFICER';
+    if (prefix.includes('admin')) role = 'ADMIN';
+    else if (prefix.includes('manager')) role = 'MANAGER';
+    else if (prefix.includes('vendor')) role = 'VENDOR';
 
-      const mockUser = {
-        id: 'user-mock-123',
-        email: values.email,
-        name: values.email.split('@')[0],
-        role: role,
-        organizationId: 'org-123'
-      };
-
-      setAuth(mockUser, 'mock-jwt-token-12345');
-      toast.success(`Welcome back, ${mockUser.name}!`);
-      
-      if (role === 'VENDOR') {
-        router.push('/vendor-portal/rfqs');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      toast.error('Login failed');
-    } finally {
-      setIsDemoLoading(false);
-    }
+    setAuth({ id: 'mock-1', email: values.email, name: prefix, role, organizationId: 'org-1' }, 'mock-token');
+    toast.success(`Welcome back, ${prefix}!`);
+    setLoading(false);
+    router.push(role === 'VENDOR' ? '/vendor-portal/rfqs' : '/dashboard');
   };
 
-  const handleDemoFill = (email: string, pass: string) => {
+  const fillDemo = (email: string, pass: string) => {
     setValue('email', email);
     setValue('password', pass);
-    toast.success('Demo credentials loaded. Click Sign In.');
+    toast.info('Demo credentials filled. Click Sign In.');
   };
 
   return (
-    <div className="flex w-full min-h-screen bg-app-bg text-white font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row">
       
-      {/* Left Side - Brand Story & Metrics */}
-      <div className="hidden lg:flex flex-1 relative bg-app-bg border-r border-app-border overflow-hidden flex-col">
-        {/* Background Gradients */}
-        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-emerald-900/10 to-transparent pointer-events-none" />
-        <div className="absolute -left-40 top-1/4 w-96 h-96 bg-teal-900/20 blur-[100px] rounded-full pointer-events-none" />
+      {/* ── LEFT PANEL (Brand Story) ── */}
+      <div className="hidden lg:flex lg:w-[42%] xl:w-[38%] bg-card border-r border-border flex-col justify-between p-12 relative overflow-hidden shrink-0">
+        {/* Decorative Background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_0%_0%,rgba(20,184,166,0.08),transparent)] pointer-events-none" />
         
-        <div className="p-12 relative z-10 flex-1 flex flex-col justify-between">
-          <div>
-            <Link href="/" className="inline-flex items-center gap-3 group">
-              <Image src="/logo.png" alt="VendorBridge Logo" width={32} height={32} className="rounded-md shadow-sm" />
-              <span className="font-semibold text-xl tracking-tight group-hover:text-emerald-400 transition-colors">VendorBridge</span>
-            </Link>
-          </div>
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center gap-3 mb-20 inline-flex group">
+            <Image src="/logo.png" alt="VendorBridge" width={32} height={32} className="rounded-md" />
+            <span className="font-bold text-xl tracking-tight group-hover:text-[#14B8A6] transition-colors">VendorBridge</span>
+          </Link>
+          
+          {/* <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-[#14B8A6] text-xs font-semibold mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
+            Procurement Operating System
+          </div> */}
+          <h1 className="text-4xl xl:text-5xl font-bold tracking-tight leading-[1.1] mb-6 max-w-lg">
+            Modern Procurement, Managed Together.
+          </h1>
+          <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
+            Unify vendors, automate approvals, and gain complete visibility into your organization's spend — all from one platform.
+          </p>
+        </div>
 
-          <div className="max-w-md">
-            <h1 className="text-4xl font-bold tracking-tight leading-[1.1] mb-6">
-              Modern Procurement Management.
-            </h1>
-            <p className="text-slate-400 text-lg leading-relaxed mb-12">
-              Unify your vendors, automate approvals, and gain complete visibility into your organization's spend.
-            </p>
-
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <BarChart3 className="w-5 h-5 text-emerald-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">Actionable Spend Analytics</h3>
-                  <p className="text-sm text-slate-400 mt-1">Real-time visibility into ₹12.4Cr+ managed spend across all active vendors and open POs.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5 text-teal-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">98% Approval Efficiency</h3>
-                  <p className="text-sm text-slate-400 mt-1">Multi-stage digital sign-offs based on organizational spend limits. Zero delays.</p>
-                </div>
-              </div>
+        {/* Feature Highlights / Metrics */}
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-6 h-6 text-indigo-500" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground">Secure & Compliant</h3>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">Enterprise-grade security with immutable audit trails for every PO and RFQ.</p>
             </div>
           </div>
-
-          {/* Animated Workflow Preview (Miniature) */}
-          <div className="mt-12 p-4 rounded-xl border border-app-border bg-app-card/50 backdrop-blur-sm max-w-sm">
-             <div className="flex items-center gap-3 text-sm text-slate-300 font-medium mb-3">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               Live Workflow Processing
-             </div>
-             <div className="space-y-2">
-                <div className="h-8 bg-app-bg border border-app-border rounded px-3 flex items-center gap-2 text-xs text-slate-400"><CheckCircle2 className="w-3 h-3 text-emerald-500"/> RFQ Created (Stationery Q3)</div>
-                <div className="h-8 bg-app-bg border border-app-border rounded px-3 flex items-center gap-2 text-xs text-slate-400"><CheckCircle2 className="w-3 h-3 text-emerald-500"/> Vendors Invited (3)</div>
-                <div className="h-8 bg-emerald-500/10 border border-emerald-500/30 rounded px-3 flex items-center justify-between text-xs text-emerald-400 font-medium"><span>Awaiting Approvals...</span><Loader2 className="w-3 h-3 animate-spin"/></div>
-             </div>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 flex items-center justify-center shrink-0">
+              <Activity className="w-6 h-6 text-[#14B8A6]" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground">Real-time Spend Analytics</h3>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">Track over ₹12.4Cr+ in active organizational spend instantly.</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="flex-1 flex flex-col p-8 sm:p-12 relative overflow-y-auto bg-app-bg">
-        <div className="w-full max-w-md mx-auto my-auto">
-          {/* Mobile Logo */}
-          <div className="flex lg:hidden items-center gap-3 mb-10">
-            <Image src="/logo.png" alt="VendorBridge" width={32} height={32} className="rounded-md" />
-            <h1 className="font-semibold text-xl tracking-tight">VendorBridge</h1>
+      {/* ── RIGHT PANEL (Auth Form) ── */}
+      <div className="flex-1 flex flex-col relative">
+        {/* Mobile Top Navigation */}
+        <div className="lg:hidden flex items-center justify-between p-6 pb-0">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/logo.png" alt="VendorBridge" width={28} height={28} className="rounded-md" />
+            <span className="font-bold text-lg tracking-tight">VendorBridge</span>
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        {/* Desktop Navigation */}
+        <div className="hidden lg:block absolute top-8 left-8 z-10">
+          <Link href="/" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+            ← Back to home
+          </Link>
+        </div>
+        <div className="hidden lg:flex absolute top-8 right-8 z-10 items-center gap-4">
+          <Link href="/register" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+            Create account
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        {/* Form Container - Centered */}
+        <div className="flex-1 flex items-center justify-center px-6 py-12">
+          <div className="w-full max-w-[440px]">
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-3xl font-bold tracking-tight mb-2">Sign in to workspace</h2>
+            <p className="text-muted-foreground text-base">Enter your credentials to continue.</p>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight mb-2">Sign in to your account</h2>
-            <p className="text-slate-400 text-sm">Enter your credentials to access the ERP dashboard.</p>
-          </div>
-
-          {/* SSO Options */}
-          <button className="w-full bg-app-card border border-app-border hover:bg-app-border/50 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm mb-6 text-sm">
-            <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
-            Continue with Google
-          </button>
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-app-border"></div></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-app-bg px-2 text-slate-500 uppercase tracking-wider font-medium">Or continue with</span></div>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Email address</label>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-bold">Work email</label>
               <input
                 {...register('email')}
                 type="email"
-                placeholder="name@company.com"
-                className="w-full bg-app-card border border-app-border rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+                placeholder="you@company.com"
+                autoComplete="email"
+                className="w-full bg-card border border-border rounded-xl px-4 py-3.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6] transition-all shadow-sm"
               />
-              {errors.email && <p className="text-rose-500 text-xs">{errors.email.message}</p>}
+              {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
-            {/* Password */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-300">Password</label>
-                <a href="#" className="text-xs text-emerald-500 hover:text-emerald-400 transition-colors font-medium">
-                  Forgot password?
-                </a>
+                <label className="text-sm font-bold">Password</label>
+                <Link href="/forgot-password" className="text-xs font-semibold text-[#14B8A6] hover:text-[#109A8B] transition-colors">Forgot password?</Link>
               </div>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="w-full bg-app-card border border-app-border rounded-lg px-4 py-2.5 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+                  autoComplete="current-password"
+                  className="w-full bg-card border border-border rounded-xl px-4 py-3.5 pr-12 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6] transition-all shadow-sm"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && <p className="text-rose-500 text-xs">{errors.password.message}</p>}
+              {errors.password && <p className="text-rose-500 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
-            <div className="flex items-center">
-              <input type="checkbox" id="remember" className="w-4 h-4 rounded border-app-border bg-app-card text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-app-bg" />
-              <label htmlFor="remember" className="ml-2 block text-sm text-slate-400">Remember me for 30 days</label>
-            </div>
-
-            {/* Submit */}
             <button
               type="submit"
-              disabled={isSubmitting || isDemoLoading}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-app-bg font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.2)] mt-2"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-[#14B8A6] hover:bg-[#109A8B] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm text-sm"
             >
-              {(isSubmitting || isDemoLoading) && <Loader2 className="w-4 h-4 animate-spin" />}
-              {(isSubmitting || isDemoLoading) ? 'Signing in...' : 'Sign in'}
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
+          <p className="text-center text-sm text-muted-foreground mt-8">
             Don't have an account?{' '}
-            <Link href="/register" className="text-emerald-500 hover:text-emerald-400 font-medium transition-colors">
-              Create workspace
-            </Link>
+            <Link href="/register" className="text-[#14B8A6] font-bold hover:underline">Create workspace</Link>
           </p>
 
-          {/* Demo Credentials */}
-          <div className="mt-10 pt-8 border-t border-app-border">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> Hackathon Demo Access
+          {/* Demo credentials */}
+          <div className="mt-12 pt-8 border-t border-border">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-6 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-500" /> Hackathon Demo Access
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {demoCredentials.map((cred) => (
+            <div className="grid grid-cols-2 gap-3">
+              {demoUsers.map(d => (
                 <button
-                  key={cred.role}
-                  type="button"
-                  onClick={() => handleDemoFill(cred.email, cred.pass)}
-                  className="text-left px-4 py-3 bg-app-card border border-app-border hover:border-emerald-500/30 rounded-lg transition-all group"
+                  key={d.role}
+                  onClick={() => fillDemo(d.email, d.pass)}
+                  className="text-left px-4 py-3.5 bg-card border border-border hover:border-[#14B8A6]/50 hover:bg-[#14B8A6]/5 rounded-xl transition-all group shadow-sm"
                 >
-                  <p className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">{cred.role}</p>
-                  <p className="text-xs text-slate-500 mt-1 truncate">{cred.desc}</p>
+                  <p className="text-sm font-bold text-foreground group-hover:text-[#14B8A6] transition-colors">{d.role}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{d.email}</p>
                 </button>
               ))}
             </div>
           </div>
-
+          </div>
         </div>
       </div>
     </div>
