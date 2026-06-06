@@ -18,13 +18,6 @@ interface RFQ {
   createdBy?: { name: string };
 }
 
-const DEMO_RFQS: RFQ[] = [
-  { id: 'r1', rfqNumber: 'RFQ-2025-001', title: 'Office Furniture Procurement Q2', status: 'OPEN', deadline: '2025-06-15', createdAt: '2025-05-28', _count: { quotations: 3 }, createdBy: { name: 'John Smith' } },
-  { id: 'r2', rfqNumber: 'RFQ-2025-002', title: 'IT Hardware Refresh 2025', status: 'EVALUATING', deadline: '2025-06-01', createdAt: '2025-05-18', _count: { quotations: 5 }, createdBy: { name: 'Jane Doe' } },
-  { id: 'r3', rfqNumber: 'RFQ-2025-003', title: 'Janitorial Services Annual Contract', status: 'DRAFT', deadline: '2025-07-01', createdAt: '2025-06-01', _count: { quotations: 0 }, createdBy: { name: 'John Smith' } },
-  { id: 'r4', rfqNumber: 'RFQ-2025-004', title: 'Cloud Infrastructure Q3', status: 'CLOSED', deadline: '2025-05-15', createdAt: '2025-04-20', _count: { quotations: 7 }, createdBy: { name: 'Jane Doe' } },
-];
-
 export default function RFQsPage() {
   const [rfqs, setRfqs] = useState<RFQ[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +29,10 @@ export default function RFQsPage() {
       const res = await rfqAPI.list();
       const data = res.data?.data ?? res.data;
       const list = Array.isArray(data) ? data : data?.rfqs ?? [];
-      setRfqs(list.length > 0 ? list : DEMO_RFQS);
-    } catch {
-      setRfqs(DEMO_RFQS);
+      setRfqs(list);
+    } catch (error) {
+      console.error('Failed to fetch RFQs:', error);
+      setRfqs([]);
     } finally {
       setLoading(false);
     }

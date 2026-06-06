@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Plus, Receipt, Download, Eye, RefreshCw } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { invoiceAPI, downloadPDFFromAPI } from '@/lib/api';
+import { invoiceAPI } from '@/lib/api';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface Invoice {
   id: string;
@@ -20,6 +21,7 @@ interface Invoice {
 export default function VendorInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -37,11 +39,9 @@ export default function VendorInvoicesPage() {
 
   useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
 
-  const handleDownload = async (inv: Invoice) => {
-    toast.info('Generating Invoice PDF...');
-    const ok = await downloadPDFFromAPI(`/api/v1/invoices/${inv.id}/pdf`, `${inv.invoiceNumber ?? inv.id}.pdf`);
-    if (ok) toast.success('Invoice PDF downloaded!');
-    else toast.error('PDF generation failed.');
+  const handleDownload = (inv: Invoice) => {
+    router.push(`/invoices/${inv.id}`);
+    toast.info('Opening invoice for PDF download…');
   };
 
   const handleUpload = () => {

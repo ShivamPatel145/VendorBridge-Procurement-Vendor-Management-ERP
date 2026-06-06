@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { Search, Filter, Receipt, Download, Eye, RefreshCw } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { invoiceAPI, downloadPDFFromAPI } from '@/lib/api';
+import { invoiceAPI } from '@/lib/api';
+import { generatePDFById } from '@/lib/generatePDF';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface Invoice {
   id: string;
@@ -14,19 +16,20 @@ interface Invoice {
   totalAmount?: number;
   status: string;
   createdAt: string;
-  vendor?: { companyName?: string };
+  po?: {
+    quotation?: {
+      vendor?: {
+        companyName?: string;
+      };
+    };
+  };
 }
-
-const DEMO_INVOICES: Invoice[] = [
-  { id: 'i1', invoiceNumber: 'INV-2025-001', totalAmount: 450000, status: 'PAID', createdAt: '2025-06-25', vendor: { companyName: 'GlobalTech Ltd' } },
-  { id: 'i2', invoiceNumber: 'INV-2025-002', totalAmount: 85000, status: 'PENDING', createdAt: '2025-06-10', vendor: { companyName: 'Acme Corp' } },
-  { id: 'i3', invoiceNumber: 'INV-2025-003', totalAmount: 1200000, status: 'OVERDUE', createdAt: '2025-05-01', vendor: { companyName: 'Stark Industries' } },
-];
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const router = useRouter();
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -34,9 +37,10 @@ export default function InvoicesPage() {
       const res = await invoiceAPI.list();
       const data = res.data?.data ?? res.data;
       const list = Array.isArray(data) ? data : data?.invoices ?? [];
-      setInvoices(list.length > 0 ? list : DEMO_INVOICES);
-    } catch {
-      setInvoices(DEMO_INVOICES);
+      setInvoices(list);
+    } catch (error) {
+      console.error('Failed to fetch invoices:', error);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -46,17 +50,13 @@ export default function InvoicesPage() {
 
   const filtered = invoices.filter(i =>
     (i.invoiceNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (i.vendor?.companyName ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+    (i.po?.quotation?.vendor?.companyName ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDownload = async (inv: Invoice) => {
-    toast.info('Generating Invoice PDF...');
-    const success = await downloadPDFFromAPI(
-      `/api/v1/invoices/${inv.id}/pdf`,
-      `${inv.invoiceNumber ?? inv.id}.pdf`
-    );
-    if (success) toast.success('Invoice PDF downloaded!');
-    else toast.error('PDF generation failed. Please try again.');
+  const handleDownload = (inv: Invoice) => {
+    // Navigate to detail page; user clicks 'Download PDF' there (uses html2pdf)
+    router.push(`/invoices/${inv.id}`);
+    toast.info('Opening invoice for PDF download…');
   };
 
   const handleResend = () => {
@@ -110,7 +110,7 @@ export default function InvoicesPage() {
                       <span className="font-bold text-foreground font-mono">{inv.invoiceNumber ?? inv.id}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-semibold text-foreground">{inv.vendor?.companyName ?? '—'}</td>
+                  <td className="px-6 py-4 font-semibold text-foreground">{inv.po?.quotation?.vendor?.companyName ?? '—'}</td>
                   <td className="px-6 py-4 text-right font-bold text-foreground font-mono">{formatCurrency(inv.totalAmount ?? 0)}</td>
                   <td className="px-6 py-4 text-muted-foreground">{formatDate(inv.createdAt)}</td>
                   <td className="px-6 py-4"><StatusBadge status={inv.status} /></td>

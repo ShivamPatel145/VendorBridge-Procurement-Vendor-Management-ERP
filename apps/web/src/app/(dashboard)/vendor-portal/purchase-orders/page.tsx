@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { ShoppingCart, Eye, Download, CheckCircle2, RefreshCw } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { purchaseOrderAPI, downloadPDFFromAPI } from '@/lib/api';
+import { purchaseOrderAPI } from '@/lib/api';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface PO {
   id: string;
@@ -20,6 +21,7 @@ interface PO {
 export default function VendorPurchaseOrdersPage() {
   const [pos, setPOs] = useState<PO[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchPOs = useCallback(async () => {
     setLoading(true);
@@ -47,11 +49,9 @@ export default function VendorPurchaseOrdersPage() {
     }
   };
 
-  const handleDownload = async (po: PO) => {
-    toast.info('Generating Purchase Order PDF...');
-    const ok = await downloadPDFFromAPI(`/api/v1/purchase-orders/${po.id}/pdf`, `${po.poNumber ?? po.id}.pdf`);
-    if (ok) toast.success('PDF downloaded!');
-    else toast.error('PDF generation failed.');
+  const handleDownload = (po: PO) => {
+    router.push(`/purchase-orders/${po.id}`);
+    toast.info('Opening PO for PDF download…');
   };
 
   return (

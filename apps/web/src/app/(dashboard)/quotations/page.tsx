@@ -126,9 +126,9 @@ export default function QuotationsPage() {
                   <td className="px-6 py-4"><StatusBadge status={q.status} /></td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Link href={`/quotations/${q.id}`} className="p-2 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 rounded-md transition-colors" title="View">
+                      <button onClick={() => window.location.href = `/quotations/${q.id}`} className="p-2 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 rounded-md transition-colors" title="View">
                         <Eye className="w-4 h-4" />
-                      </Link>
+                      </button>
                     </div>
                   </td>
                 </tr>

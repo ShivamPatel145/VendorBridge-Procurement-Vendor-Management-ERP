@@ -13,14 +13,12 @@ interface PO {
   totalAmount?: number;
   status: string;
   createdAt: string;
-  vendor?: { companyName?: string; name?: string };
+  quotation?: {
+    vendor?: {
+      companyName?: string;
+    };
+  };
 }
-
-const DEMO_POS: PO[] = [
-  { id: 'p1', poNumber: 'PO-2025-001', totalAmount: 450000, status: 'APPROVED', createdAt: '2025-06-02', vendor: { companyName: 'GlobalTech Ltd' } },
-  { id: 'p2', poNumber: 'PO-2025-002', totalAmount: 85000, status: 'SENT', createdAt: '2025-05-15', vendor: { companyName: 'Acme Corp' } },
-  { id: 'p3', poNumber: 'PO-2025-003', totalAmount: 1200000, status: 'CLOSED', createdAt: '2025-04-10', vendor: { companyName: 'Stark Industries' } },
-];
 
 export default function PurchaseOrdersPage() {
   const [pos, setPOs] = useState<PO[]>([]);
@@ -33,9 +31,10 @@ export default function PurchaseOrdersPage() {
       const res = await purchaseOrderAPI.list();
       const data = res.data?.data ?? res.data;
       const list = Array.isArray(data) ? data : data?.purchaseOrders ?? [];
-      setPOs(list.length > 0 ? list : DEMO_POS);
-    } catch {
-      setPOs(DEMO_POS);
+      setPOs(list);
+    } catch (error) {
+      console.error('Failed to fetch purchase orders:', error);
+      setPOs([]);
     } finally {
       setLoading(false);
     }
@@ -45,7 +44,7 @@ export default function PurchaseOrdersPage() {
 
   const filtered = pos.filter(p =>
     (p.poNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.vendor?.companyName ?? p.vendor?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+    (p.quotation?.vendor?.companyName ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -95,7 +94,7 @@ export default function PurchaseOrdersPage() {
                       <span className="font-bold text-foreground font-mono">{po.poNumber ?? po.id}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-semibold text-foreground">{po.vendor?.companyName ?? po.vendor?.name ?? '—'}</td>
+                  <td className="px-6 py-4 font-semibold text-foreground">{po.quotation?.vendor?.companyName ?? '—'}</td>
                   <td className="px-6 py-4 text-right font-bold text-foreground font-mono">{formatCurrency(po.totalAmount ?? 0)}</td>
                   <td className="px-6 py-4 text-muted-foreground">{formatDate(po.createdAt)}</td>
                   <td className="px-6 py-4"><StatusBadge status={po.status} /></td>

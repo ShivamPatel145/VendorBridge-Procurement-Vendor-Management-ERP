@@ -11,20 +11,16 @@ interface Vendor {
   id: string;
   companyName: string;
   contactPerson?: string;
-  email: string;
+  email?: string;
+  phone?: string;
   category?: string;
   gstNo?: string;
   contactNo?: string;
   status: string;
+  user?: {
+    email: string;
+  };
 }
-
-// Fallback demo data if API is empty
-const DEMO_VENDORS: Vendor[] = [
-  { id: 'v1', companyName: 'Acme Corp', email: 'contact@acmecorp.com', category: 'IT Hardware', gstNo: '27AABCU9603R1ZJ', contactNo: '+1 555-0100', status: 'APPROVED' },
-  { id: 'v2', companyName: 'GlobalTech Ltd', email: 'sales@globaltech.co', category: 'Software Services', gstNo: '27AABCU9604R1ZK', contactNo: '+1 555-0101', status: 'PENDING' },
-  { id: 'v3', companyName: 'Office World Pvt Ltd', email: 'info@officeworld.in', category: 'Stationery', gstNo: '27AABCU9605R1ZL', contactNo: '+1 555-0102', status: 'APPROVED' },
-  { id: 'v4', companyName: 'CleanPro Services', email: 'support@cleanpro.com', category: 'Facilities', gstNo: '27AABCU9606R1ZM', contactNo: '+1 555-0103', status: 'REJECTED' },
-];
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -36,10 +32,12 @@ export default function VendorsPage() {
     try {
       const res = await vendorAPI.list();
       const data = res.data?.data ?? res.data;
-      const list = Array.isArray(data) ? data : [];
-      setVendors(list.length > 0 ? list : DEMO_VENDORS);
-    } catch {
-      setVendors(DEMO_VENDORS);
+      const list = Array.isArray(data) ? data : data?.vendors ?? [];
+      setVendors(list);
+    } catch (error) {
+      console.error('Failed to fetch vendors:', error);
+      toast.error('Failed to load vendors');
+      setVendors([]);
     } finally {
       setLoading(false);
     }
