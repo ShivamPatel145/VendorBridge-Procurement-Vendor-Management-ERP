@@ -13,10 +13,16 @@ purchaseOrderRoutes.use(authenticate);
 purchaseOrderRoutes.get('/', POController.list);
 purchaseOrderRoutes.get('/:id', POController.get);
 
+// PDF Download
+purchaseOrderRoutes.get('/:id/pdf', POController.downloadPDF);
+
 // Changes: Restricted to ADMIN, MANAGER, or PROCUREMENT_OFFICER
 purchaseOrderRoutes.post('/generate', authorize(Role.ADMIN, Role.MANAGER, Role.PROCUREMENT_OFFICER), POController.generate);
 
 // Updates status or dates: ADMIN, MANAGER, PROCUREMENT_OFFICER, or VENDOR (e.g. to acknowledge)
 purchaseOrderRoutes.put('/:id', POController.update);
+
+// Vendor acknowledges a PO
+purchaseOrderRoutes.patch('/:id/acknowledge', POController.acknowledge);
 
 export default purchaseOrderRoutes;

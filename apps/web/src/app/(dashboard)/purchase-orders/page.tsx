@@ -1,56 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, Filter, ShoppingCart, Calendar, MoreHorizontal, Download } from 'lucide-react';
+import { Search, Filter, ShoppingCart, Eye, RefreshCw } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { purchaseOrderAPI } from '@/lib/api';
 
-// Mock Data
-const MOCK_POS = [
-  { id: 'PO-2025-001', vendor: 'Acme Corp', amount: 10250000, date: '2025-06-21', status: 'SENT' },
-  { id: 'PO-2025-002', vendor: 'GlobalTech Ltd', amount: 4500000, date: '2025-06-19', status: 'ACKNOWLEDGED' },
-  { id: 'PO-2025-003', vendor: 'Stark Industries', amount: 1200000, date: '2025-06-05', status: 'COMPLETED' },
-  { id: 'PO-2025-004', vendor: 'Office World Pvt Ltd', amount: 85000, date: '2025-06-01', status: 'COMPLETED' },
+interface PO {
+  id: string;
+  poNumber?: string;
+  totalAmount?: number;
+  status: string;
+  createdAt: string;
+  vendor?: { companyName?: string; name?: string };
+}
+
+const DEMO_POS: PO[] = [
+  { id: 'p1', poNumber: 'PO-2025-001', totalAmount: 450000, status: 'APPROVED', createdAt: '2025-06-02', vendor: { companyName: 'GlobalTech Ltd' } },
+  { id: 'p2', poNumber: 'PO-2025-002', totalAmount: 85000, status: 'SENT', createdAt: '2025-05-15', vendor: { companyName: 'Acme Corp' } },
+  { id: 'p3', poNumber: 'PO-2025-003', totalAmount: 1200000, status: 'CLOSED', createdAt: '2025-04-10', vendor: { companyName: 'Stark Industries' } },
 ];
 
 export default function PurchaseOrdersPage() {
+  const [pos, setPOs] = useState<PO[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filtered = MOCK_POS.filter(p => 
-    p.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.vendor.toLowerCase().includes(searchTerm.toLowerCase())
+  const fetchPOs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await purchaseOrderAPI.list();
+      const data = res.data?.data ?? res.data;
+      const list = Array.isArray(data) ? data : data?.purchaseOrders ?? [];
+      setPOs(list.length > 0 ? list : DEMO_POS);
+    } catch {
+      setPOs(DEMO_POS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchPOs(); }, [fetchPOs]);
+
+  const filtered = pos.filter(p =>
+    (p.poNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.vendor?.companyName ?? p.vendor?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-      
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Purchase Orders</h2>
-          <p className="text-sm text-muted-foreground mt-1">Track and manage issued purchase orders.</p>
+          <p className="text-sm text-muted-foreground mt-1">View and manage all issued purchase orders.</p>
         </div>
+        <button onClick={fetchPOs} className="p-2.5 bg-card border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm" title="Refresh">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
-
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Search by PO number or vendor..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6] transition-all shadow-sm"
-          />
+          <input type="text" placeholder="Search POs..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6] transition-all shadow-sm" />
         </div>
         <button className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-lg text-sm font-semibold text-foreground hover:bg-muted transition-colors shadow-sm shrink-0">
           <Filter className="w-4 h-4 text-muted-foreground" /> Filters
         </button>
       </div>
-
-      {/* Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -58,65 +76,43 @@ export default function PurchaseOrdersPage() {
               <tr>
                 <th className="px-6 py-4">PO Number</th>
                 <th className="px-6 py-4">Vendor</th>
-                <th className="px-6 py-4">Amount</th>
+                <th className="px-6 py-4 text-right">Amount</th>
                 <th className="px-6 py-4">Issue Date</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((po) => (
+              {loading ? Array.from({ length: 3 }).map((_, i) => (
+                <tr key={i}><td colSpan={6} className="px-6 py-4"><div className="h-4 bg-muted rounded animate-pulse" /></td></tr>
+              )) : filtered.map((po) => (
                 <tr key={po.id} className="hover:bg-muted/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#14B8A6]/10 flex items-center justify-center shrink-0">
-                        <ShoppingCart className="w-5 h-5 text-[#14B8A6]" />
+                      <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                        <ShoppingCart className="w-5 h-5 text-amber-500" />
                       </div>
-                      <Link href={`/purchase-orders/${po.id}`} className="font-bold text-foreground hover:text-[#14B8A6] transition-colors">
-                        {po.id}
-                      </Link>
+                      <span className="font-bold text-foreground font-mono">{po.poNumber ?? po.id}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="font-semibold text-foreground">{po.vendor}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="font-bold text-foreground">{formatCurrency(po.amount)}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-xs">{formatDate(po.date)}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={po.status} />
-                  </td>
+                  <td className="px-6 py-4 font-semibold text-foreground">{po.vendor?.companyName ?? po.vendor?.name ?? '—'}</td>
+                  <td className="px-6 py-4 text-right font-bold text-foreground font-mono">{formatCurrency(po.totalAmount ?? 0)}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{formatDate(po.createdAt)}</td>
+                  <td className="px-6 py-4"><StatusBadge status={po.status} /></td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-muted-foreground hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 rounded-md transition-colors" title="Download PDF">
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <Link href={`/purchase-orders/${po.id}`} className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded-md transition-colors inline-block" title="View">
+                      <Eye className="w-4 h-4" />
+                    </Link>
                   </td>
                 </tr>
               ))}
-              
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                    No purchase orders found.
-                  </td>
-                </tr>
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No purchase orders found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 }

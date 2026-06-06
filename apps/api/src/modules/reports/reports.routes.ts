@@ -8,12 +8,11 @@ export const reportRoutes = Router();
 
 // Secure all report endpoints
 reportRoutes.use(authenticate);
-reportRoutes.use(authorize(Role.ADMIN, Role.MANAGER));
 
-// GET /api/v1/reports/summary
+// GET /api/v1/reports/summary — accessible to all authenticated roles for dashboard stats
 reportRoutes.get('/summary', ReportsController.getSummary);
 
-// GET /api/v1/reports/audit-logs
-reportRoutes.get('/audit-logs', ReportsController.getAuditLogs);
+// GET /api/v1/reports/audit-logs — restricted to ADMIN & MANAGER
+reportRoutes.get('/audit-logs', authorize(Role.ADMIN, Role.MANAGER), ReportsController.getAuditLogs);
 
 export default reportRoutes;

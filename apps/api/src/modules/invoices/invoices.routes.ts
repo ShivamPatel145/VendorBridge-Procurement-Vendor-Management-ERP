@@ -13,6 +13,9 @@ invoiceRoutes.use(authenticate);
 invoiceRoutes.get('/', InvoicesController.list);
 invoiceRoutes.get('/:id', InvoicesController.get);
 
+// PDF Download
+invoiceRoutes.get('/:id/pdf', InvoicesController.downloadPDF);
+
 // Vendor generates invoice from active PO
 invoiceRoutes.post('/generate', authorize(Role.VENDOR), InvoicesController.create);
 

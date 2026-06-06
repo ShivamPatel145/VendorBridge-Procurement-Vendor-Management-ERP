@@ -1,133 +1,137 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, Plus, Filter, MoreHorizontal, FileText, Clock, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Filter, FileText, ArrowRight, RefreshCw } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { formatDate } from '@/lib/utils';
+import { rfqAPI } from '@/lib/api';
 
-// Mock Data
-const MOCK_RFQS = [
-  { id: 'rfq-001', title: 'Office Stationery Q3 2025', department: 'Operations', deadline: '2025-07-15', vendors: 5, bids: 3, status: 'PUBLISHED' },
-  { id: 'rfq-002', title: 'IT Equipment Procurement (Laptops)', department: 'IT', deadline: '2025-07-01', vendors: 8, bids: 8, status: 'EVALUATING' },
-  { id: 'rfq-003', title: 'Cleaning Supplies Annual Contract', department: 'Facilities', deadline: '2025-07-30', vendors: 3, bids: 0, status: 'DRAFT' },
-  { id: 'rfq-004', title: 'Marketing Agency Retainer', department: 'Marketing', deadline: '2025-05-15', vendors: 4, bids: 4, status: 'AWARDED' },
-  { id: 'rfq-005', title: 'Data Center HVAC Upgrade', department: 'Infrastructure', deadline: '2025-08-10', vendors: 6, bids: 2, status: 'PUBLISHED' },
+interface RFQ {
+  id: string;
+  rfqNumber?: string;
+  title: string;
+  status: string;
+  deadline?: string;
+  createdAt: string;
+  _count?: { quotations: number };
+  createdBy?: { name: string };
+}
+
+const DEMO_RFQS: RFQ[] = [
+  { id: 'r1', rfqNumber: 'RFQ-2025-001', title: 'Office Furniture Procurement Q2', status: 'OPEN', deadline: '2025-06-15', createdAt: '2025-05-28', _count: { quotations: 3 }, createdBy: { name: 'John Smith' } },
+  { id: 'r2', rfqNumber: 'RFQ-2025-002', title: 'IT Hardware Refresh 2025', status: 'EVALUATING', deadline: '2025-06-01', createdAt: '2025-05-18', _count: { quotations: 5 }, createdBy: { name: 'Jane Doe' } },
+  { id: 'r3', rfqNumber: 'RFQ-2025-003', title: 'Janitorial Services Annual Contract', status: 'DRAFT', deadline: '2025-07-01', createdAt: '2025-06-01', _count: { quotations: 0 }, createdBy: { name: 'John Smith' } },
+  { id: 'r4', rfqNumber: 'RFQ-2025-004', title: 'Cloud Infrastructure Q3', status: 'CLOSED', deadline: '2025-05-15', createdAt: '2025-04-20', _count: { quotations: 7 }, createdBy: { name: 'Jane Doe' } },
 ];
 
 export default function RFQsPage() {
+  const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filtered = MOCK_RFQS.filter(r => 
-    r.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.department.toLowerCase().includes(searchTerm.toLowerCase())
+  const fetchRFQs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await rfqAPI.list();
+      const data = res.data?.data ?? res.data;
+      const list = Array.isArray(data) ? data : data?.rfqs ?? [];
+      setRfqs(list.length > 0 ? list : DEMO_RFQS);
+    } catch {
+      setRfqs(DEMO_RFQS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRFQs(); }, [fetchRFQs]);
+
+  const filtered = rfqs.filter(r =>
+    (r.title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.rfqNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-      
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">Request for Quotations (RFQs)</h2>
-          <p className="text-sm text-muted-foreground mt-1">Create, broadcast, and manage your sourcing events.</p>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Request for Quotations</h2>
+          <p className="text-sm text-muted-foreground mt-1">Manage procurement events and vendor invitations.</p>
         </div>
-        <Link href="/rfqs/new" className="flex items-center gap-2 bg-[#14B8A6] hover:bg-[#109A8B] text-white font-bold px-4 py-2.5 rounded-lg transition-colors shadow-sm">
-          <Plus className="w-4 h-4" /> Create RFQ
-        </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchRFQs} className="p-2.5 bg-card border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm" title="Refresh">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <Link href="/rfqs/new" className="flex items-center gap-2 bg-[#14B8A6] hover:bg-[#109A8B] text-white font-bold px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+            <Plus className="w-4 h-4" /> New RFQ
+          </Link>
+        </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Search RFQs by title or department..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6] transition-all shadow-sm"
-          />
+          <input type="text" placeholder="Search RFQs..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6] transition-all shadow-sm" />
         </div>
         <button className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-lg text-sm font-semibold text-foreground hover:bg-muted transition-colors shadow-sm shrink-0">
           <Filter className="w-4 h-4 text-muted-foreground" /> Filters
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 border-b border-border text-muted-foreground text-xs uppercase font-bold tracking-wider">
               <tr>
-                <th className="px-6 py-4">RFQ Title</th>
-                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">RFQ</th>
+                <th className="px-6 py-4">Created By</th>
+                <th className="px-6 py-4 text-center">Quotes</th>
                 <th className="px-6 py-4">Deadline</th>
-                <th className="px-6 py-4">Responses</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((rfq) => (
+              {loading ? Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}><td colSpan={6} className="px-6 py-4"><div className="h-4 bg-muted rounded animate-pulse" /></td></tr>
+              )) : filtered.map((rfq) => (
                 <tr key={rfq.id} className="hover:bg-muted/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
-                        <FileText className="w-5 h-5 text-indigo-500" />
+                      <div className="w-10 h-10 rounded-lg bg-[#14B8A6]/10 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5 text-[#14B8A6]" />
                       </div>
                       <div>
-                        <Link href={`/rfqs/${rfq.id}`} className="font-bold text-foreground hover:text-[#14B8A6] transition-colors">
-                          {rfq.title}
-                        </Link>
-                        <p className="text-xs text-muted-foreground mt-0.5">{rfq.department} • {rfq.id}</p>
+                        <p className="font-bold text-foreground">{rfq.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 font-mono">{rfq.rfqNumber}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={rfq.status} />
+                  <td className="px-6 py-4 text-muted-foreground font-medium">{rfq.createdBy?.name ?? '—'}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-xs font-bold text-foreground">
+                      {rfq._count?.quotations ?? 0}
+                    </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatDate(rfq.deadline)}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-foreground">{rfq.bids} / {rfq.vendors}</span>
-                      <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Bids Received</span>
-                    </div>
-                  </td>
+                  <td className="px-6 py-4 text-muted-foreground">{rfq.deadline ? formatDate(rfq.deadline) : '—'}</td>
+                  <td className="px-6 py-4"><StatusBadge status={rfq.status} /></td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {rfq.status === 'EVALUATING' && (
-                        <Link 
-                          href={`/quotations/compare/${rfq.id}`}
-                          className="px-3 py-1.5 text-xs font-bold bg-[#14B8A6] text-white rounded-md hover:bg-[#109A8B] transition-colors flex items-center gap-1.5"
-                        >
-                          <FileSpreadsheet className="w-3.5 h-3.5" /> Compare Bids
-                        </Link>
-                      )}
-                      <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
+                      <Link href={`/rfqs/${rfq.id}`} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-card border border-border rounded-lg text-muted-foreground hover:text-[#14B8A6] hover:border-[#14B8A6]/40 transition-colors">
+                        View <ArrowRight className="w-3 h-3" />
+                      </Link>
                     </div>
                   </td>
                 </tr>
               ))}
-              
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                    No RFQs found matching your search.
-                  </td>
-                </tr>
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No RFQs found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useRegister } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const STEPS = [
   { id: 1, title: 'Your Account' },
@@ -57,9 +59,11 @@ const selectCls = inputCls + " cursor-pointer";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const registerMutation = useRegister();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '', photo: null as File | null,
     company: '', industry: '', size: '', additionalInfo: '',
@@ -70,14 +74,54 @@ export default function RegisterPage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setForm(p => ({ ...p, photo: file }));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const next = () => setStep(s => Math.min(s + 1, 5));
   const back = () => setStep(s => Math.max(s - 1, 1));
 
   const submit = async () => {
-    setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setSubmitting(false);
-    setDone(true);
+    try {
+      setSubmitting(true);
+      
+      // Validate required fields
+      if (!form.name || !form.email || !form.password) {
+        toast.error('Please fill in all required fields');
+        setSubmitting(false);
+        return;
+      }
+
+      // Submit registration to API
+      await registerMutation.mutateAsync({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role || 'PROCUREMENT_OFFICER',
+        phone: form.phone,
+        companyName: form.company,
+        contactPerson: form.name,
+        address: `${form.country}`,
+      } as any);
+
+      // On success, show success message and redirect
+      setDone(true);
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setSubmitting(false);
+      // Error toast is handled by the hook
+    }
   };
 
   if (done) {
@@ -86,15 +130,15 @@ export default function RegisterPage() {
         <div className="w-24 h-24 rounded-full bg-[#14B8A6]/15 flex items-center justify-center mb-8 ring-[12px] ring-[#14B8A6]/5">
           <CheckCircle2 className="w-12 h-12 text-[#14B8A6]" />
         </div>
-        <h2 className="text-4xl font-bold mb-4 tracking-tight">Workspace Ready!</h2>
+        <h2 className="text-4xl font-bold mb-4 tracking-tight">Account Created!</h2>
         <p className="text-muted-foreground text-lg max-w-md mx-auto mb-10 leading-relaxed">
-          Welcome aboard, <strong className="text-foreground">{form.name || 'there'}</strong>. Your VendorBridge environment is configured with demo data.
+          Welcome, <strong className="text-foreground">{form.name || 'there'}</strong>! Your account has been created successfully. Redirecting to login...
         </p>
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push('/login')}
           className="bg-[#14B8A6] text-white px-10 py-4 rounded-xl font-bold hover:bg-[#109A8B] transition-colors shadow-lg flex items-center gap-3"
         >
-          Go to Dashboard <ArrowRight className="w-5 h-5" />
+          Go to Login <ArrowRight className="w-5 h-5" />
         </button>
       </div>
     );
@@ -210,10 +254,16 @@ export default function RegisterPage() {
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="mb-8 flex flex-col items-center sm:items-start text-center sm:text-left">
                   {/* Photo Upload Area */}
-                  <label className="w-24 h-24 rounded-full bg-muted/50 border-2 border-dashed border-border hover:border-[#14B8A6] flex flex-col items-center justify-center cursor-pointer transition-colors mb-6 mx-auto sm:mx-0 group">
-                    <User className="w-8 h-8 text-muted-foreground group-hover:text-[#14B8A6] mb-1" />
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Photo</span>
-                    <input type="file" className="hidden" accept="image/*" onChange={(e) => setForm(p => ({ ...p, photo: e.target.files?.[0] || null }))} />
+                  <label className="w-24 h-24 rounded-full bg-muted/50 border-2 border-dashed border-border hover:border-[#14B8A6] flex flex-col items-center justify-center cursor-pointer transition-colors mb-6 mx-auto sm:mx-0 group overflow-hidden relative">
+                    {photoPreview ? (
+                      <Image src={photoPreview} alt="Profile preview" width={96} height={96} className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <User className="w-8 h-8 text-muted-foreground group-hover:text-[#14B8A6] mb-1" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Photo</span>
+                      </>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
                   </label>
                   
                   <h2 className="text-3xl font-bold tracking-tight mb-2">Create your account</h2>
@@ -346,9 +396,19 @@ export default function RegisterPage() {
                   <p className="text-muted-foreground text-base">Confirm your workspace details before creating.</p>
                 </div>
                 <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm divide-y divide-border">
+                  {/* Profile Photo Preview */}
+                  {photoPreview && (
+                    <div className="flex items-center justify-between px-6 py-4">
+                      <span className="text-sm font-semibold text-muted-foreground">Profile Photo</span>
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#14B8A6]">
+                        <Image src={photoPreview} alt="Profile" width={48} height={48} className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  )}
                   {[
                     { label: 'Name', val: form.name || '—' },
                     { label: 'Email', val: form.email || '—' },
+                    { label: 'Phone', val: form.phone || '—' },
                     { label: 'Company', val: form.company || '—' },
                     { label: 'Industry', val: form.industry || '—' },
                     { label: 'Role', val: ROLES.find(r => r.id === form.role)?.title || '—', highlight: true },

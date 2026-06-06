@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
-import { Loader2, Eye, EyeOff, Sun, Moon, ArrowRight, ShieldCheck, Activity, Zap } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Sun, Moon, ShieldCheck, Activity, Zap } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/store/authStore';
+import { useLogin } from '@/hooks/useAuth';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -19,10 +18,10 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 const demoUsers = [
-  { role: 'Admin', email: 'admin@vendorbridge.demo', pass: 'Admin@123' },
-  { role: 'Procurement', email: 'officer@vendorbridge.demo', pass: 'Officer@123' },
-  { role: 'Manager', email: 'manager@vendorbridge.demo', pass: 'Manager@123' },
-  { role: 'Vendor', email: 'vendor@vendorbridge.demo', pass: 'Vendor@123' },
+  { role: 'Admin', email: 'admin@vendorbridge.demo', pass: 'Demo@1234' },
+  { role: 'Procurement', email: 'officer@vendorbridge.demo', pass: 'Demo@1234' },
+  { role: 'Manager', email: 'manager@vendorbridge.demo', pass: 'Demo@1234' },
+  { role: 'Vendor', email: 'vendor@vendorbridge.demo', pass: 'Demo@1234' },
 ];
 
 function ThemeToggle() {
@@ -42,28 +41,15 @@ function ThemeToggle() {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { setAuth } = useAuthStore();
+  const login = useLogin();
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (values: LoginForm) => {
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 900));
-    const prefix = values.email.split('@')[0].toLowerCase();
-    let role = 'PROCUREMENT_OFFICER';
-    if (prefix.includes('admin')) role = 'ADMIN';
-    else if (prefix.includes('manager')) role = 'MANAGER';
-    else if (prefix.includes('vendor')) role = 'VENDOR';
-
-    setAuth({ id: 'mock-1', email: values.email, name: prefix, role, organizationId: 'org-1' }, 'mock-token');
-    toast.success(`Welcome back, ${prefix}!`);
-    setLoading(false);
-    router.push(role === 'VENDOR' ? '/vendor-portal/rfqs' : '/dashboard');
+    login.mutate(values);
   };
 
   const fillDemo = (email: string, pass: string) => {
@@ -188,11 +174,11 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={login.isPending}
               className="w-full flex items-center justify-center gap-2 bg-[#14B8A6] hover:bg-[#109A8B] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm text-sm"
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? 'Signing in…' : 'Sign in'}
+              {login.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              {login.isPending ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 

@@ -25,37 +25,37 @@ export default function Header() {
   const title = Object.entries(pageTitles).find(([key]) => pathname.startsWith(key))?.[1] ?? 'VendorBridge';
 
   return (
-    <header className="h-16 bg-app-bg/80 backdrop-blur-md border-b border-app-border flex items-center px-6 gap-4 shrink-0 sticky top-0 z-10 text-white">
+    <header className="h-16 bg-app-bg/80 backdrop-blur-md border-b border-app-border flex items-center px-6 gap-4 shrink-0 sticky top-0 z-10">
       {/* Page title */}
-      <h1 className="font-semibold text-lg flex-1 tracking-tight">{title}</h1>
+      <h1 className="font-semibold text-lg flex-1 tracking-tight text-foreground">{title}</h1>
 
       {/* Search */}
       <div className="relative hidden md:block group">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-[#14B8A6] transition-colors" />
         <input
           type="text"
           placeholder="Search everywhere..."
-          className="bg-app-card border border-app-border rounded-md pl-9 pr-4 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-64 transition-all shadow-sm"
+          className="bg-card border border-border rounded-md pl-9 pr-4 py-1.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6] w-64 transition-all shadow-sm"
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-app-bg border border-app-border rounded">⌘</kbd>
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-app-bg border border-app-border rounded">K</kbd>
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted border border-border rounded">⌘</kbd>
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted border border-border rounded">K</kbd>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-l border-app-border pl-4 ml-2">
-        {/* Theme toggle (Decorative since we force dark mode for the premium feel, but functional if enabled) */}
+      <div className="flex items-center gap-2 border-l border-border pl-4 ml-2">
+        {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-8 h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-white hover:bg-app-card transition-colors"
+          className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
         {/* Notifications */}
-        <button className="relative w-8 h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-white hover:bg-app-card transition-colors">
+        <button className="relative w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
           <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border border-app-bg"></span>
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#14B8A6] rounded-full border border-background"></span>
         </button>
       </div>
     </header>

@@ -68,7 +68,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col shrink-0">
       {/* Logo */}
-      <div className="p-5 border-b border-border">
+      <div className="h-16 px-5 border-b border-border flex items-center">
         <Link href="/dashboard" className="flex items-center gap-3 group">
           <Image src="/logo.png" alt="VendorBridge" width={32} height={32} className="rounded-lg shadow-sm" />
           <div>
