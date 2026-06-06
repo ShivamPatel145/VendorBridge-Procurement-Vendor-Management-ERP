@@ -73,6 +73,40 @@ export default function ApprovalDetailView({ params }: { params: { id: string } 
         <h2 className="text-3xl font-bold text-foreground tracking-tight">{APP_DATA.rfqTitle}</h2>
       </div>
 
+      {/* Approval Workflow Timeline */}
+      <div className="bg-card border border-border rounded-xl p-6 mb-8">
+        <h3 className="font-bold text-foreground mb-6">Approval Workflow</h3>
+        <div className="flex items-center justify-between relative">
+          {/* Progress Line */}
+          <div className="absolute top-5 left-0 right-0 h-0.5 bg-border -z-10" />
+          <div className="absolute top-5 left-0 h-0.5 bg-[#14B8A6] -z-10" style={{ width: '50%' }} />
+          
+          {/* Steps */}
+          {[
+            { num: 1, label: 'Initiated', status: 'complete', sublabel: 'Procurement' },
+            { num: 2, label: 'Review', status: 'complete', sublabel: 'Finance' },
+            { num: 3, label: 'Approval', status: 'current', sublabel: 'Manager' },
+            { num: 4, label: 'PO Created', status: 'pending', sublabel: 'System' },
+          ].map((step, idx) => (
+            <div key={idx} className="flex flex-col items-center relative z-10">
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 mb-2 transition-all",
+                step.status === 'complete' ? "bg-[#14B8A6] border-[#14B8A6] text-white" :
+                step.status === 'current' ? "bg-amber-500 border-amber-500 text-white ring-4 ring-amber-500/20" :
+                "bg-card border-border text-muted-foreground"
+              )}>
+                {step.status === 'complete' ? '✓' : step.num}
+              </div>
+              <p className={cn(
+                "text-xs font-bold text-center mb-1",
+                step.status === 'current' ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+              )}>{step.label}</p>
+              <p className="text-[10px] text-muted-foreground">{step.sublabel}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: Details */}

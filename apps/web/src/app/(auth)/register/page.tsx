@@ -61,8 +61,8 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [form, setForm] = useState({
-    name: '', email: '', password: '',
-    company: '', industry: '', size: '',
+    name: '', email: '', password: '', phone: '', photo: null as File | null,
+    company: '', industry: '', size: '', additionalInfo: '',
     role: '',
     categories: '', country: 'India', currency: 'INR',
   });
@@ -208,13 +208,25 @@ export default function RegisterPage() {
             {/* STEP 1 */}
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="mb-8">
+                <div className="mb-8 flex flex-col items-center sm:items-start text-center sm:text-left">
+                  {/* Photo Upload Area */}
+                  <label className="w-24 h-24 rounded-full bg-muted/50 border-2 border-dashed border-border hover:border-[#14B8A6] flex flex-col items-center justify-center cursor-pointer transition-colors mb-6 mx-auto sm:mx-0 group">
+                    <User className="w-8 h-8 text-muted-foreground group-hover:text-[#14B8A6] mb-1" />
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Photo</span>
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => setForm(p => ({ ...p, photo: e.target.files?.[0] || null }))} />
+                  </label>
+                  
                   <h2 className="text-3xl font-bold tracking-tight mb-2">Create your account</h2>
                   <p className="text-muted-foreground text-base">Enter your personal details to get started.</p>
                 </div>
-                <Field label="Full Name">
-                  <input type="text" value={form.name} onChange={set('name')} placeholder="John Doe" className={inputCls} autoFocus />
-                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Full Name">
+                    <input type="text" value={form.name} onChange={set('name')} placeholder="John Doe" className={inputCls} autoFocus />
+                  </Field>
+                  <Field label="Phone Number">
+                    <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+1 (555) 000-0000" className={inputCls} />
+                  </Field>
+                </div>
                 <Field label="Work Email">
                   <input type="email" value={form.email} onChange={set('email')} placeholder="john@company.com" className={inputCls} />
                 </Field>
@@ -234,27 +246,38 @@ export default function RegisterPage() {
                 <Field label="Company Name">
                   <input type="text" value={form.company} onChange={set('company')} placeholder="Acme Corp" className={inputCls} autoFocus />
                 </Field>
-                <Field label="Industry">
-                  <select value={form.industry} onChange={set('industry')} className={selectCls}>
-                    <option value="" disabled>Select your industry</option>
-                    <option>Technology</option>
-                    <option>Manufacturing</option>
-                    <option>Retail</option>
-                    <option>Healthcare</option>
-                    <option>Finance</option>
-                    <option>Education</option>
-                    <option>Other</option>
-                  </select>
-                </Field>
-                <Field label="Company Size">
-                  <select value={form.size} onChange={set('size')} className={selectCls}>
-                    <option value="" disabled>Select company size</option>
-                    <option>1 – 10</option>
-                    <option>11 – 50</option>
-                    <option>51 – 200</option>
-                    <option>201 – 1,000</option>
-                    <option>1,000+</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Industry">
+                    <select value={form.industry} onChange={set('industry')} className={selectCls}>
+                      <option value="" disabled>Select your industry</option>
+                      <option>Technology</option>
+                      <option>Manufacturing</option>
+                      <option>Retail</option>
+                      <option>Healthcare</option>
+                      <option>Finance</option>
+                      <option>Education</option>
+                      <option>Other</option>
+                    </select>
+                  </Field>
+                  <Field label="Company Size">
+                    <select value={form.size} onChange={set('size')} className={selectCls}>
+                      <option value="" disabled>Select company size</option>
+                      <option>1 – 10</option>
+                      <option>11 – 50</option>
+                      <option>51 – 200</option>
+                      <option>201 – 1,000</option>
+                      <option>1,000+</option>
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Additional Information">
+                  <textarea 
+                    value={form.additionalInfo} 
+                    onChange={(e) => setForm(p => ({ ...p, additionalInfo: e.target.value }))}
+                    placeholder="Tell us about your procurement needs..." 
+                    rows={3}
+                    className={cn(inputCls, "resize-none")} 
+                  />
                 </Field>
               </div>
             )}

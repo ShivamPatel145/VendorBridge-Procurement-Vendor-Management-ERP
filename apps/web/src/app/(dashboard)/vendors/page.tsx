@@ -8,11 +8,11 @@ import { cn } from '@/lib/utils';
 
 // Mock Data
 const MOCK_VENDORS = [
-  { id: 'v1', name: 'Acme Corp', email: 'contact@acmecorp.com', category: 'IT Hardware', score: 98, status: 'APPROVED' },
-  { id: 'v2', name: 'GlobalTech Ltd', email: 'sales@globaltech.co', category: 'Software Services', score: 85, status: 'PENDING' },
-  { id: 'v3', name: 'Office World Pvt Ltd', email: 'info@officeworld.in', category: 'Stationery', score: 92, status: 'APPROVED' },
-  { id: 'v4', name: 'CleanPro Services', email: 'support@cleanpro.com', category: 'Facilities', score: 76, status: 'REJECTED' },
-  { id: 'v5', name: 'Stark Industries', email: 'defense@stark.com', category: 'R&D', score: 99, status: 'APPROVED' },
+  { id: 'v1', name: 'Acme Corp', email: 'contact@acmecorp.com', category: 'IT Hardware', gstNo: '27AABCU9603R1ZJ', contactNo: '+1 555-0100', score: 98, status: 'APPROVED' },
+  { id: 'v2', name: 'GlobalTech Ltd', email: 'sales@globaltech.co', category: 'Software Services', gstNo: '27AABCU9604R1ZK', contactNo: '+1 555-0101', score: 85, status: 'PENDING' },
+  { id: 'v3', name: 'Office World Pvt Ltd', email: 'info@officeworld.in', category: 'Stationery', gstNo: '27AABCU9605R1ZL', contactNo: '+1 555-0102', score: 92, status: 'APPROVED' },
+  { id: 'v4', name: 'CleanPro Services', email: 'support@cleanpro.com', category: 'Facilities', gstNo: '27AABCU9606R1ZM', contactNo: '+1 555-0103', score: 76, status: 'REJECTED' },
+  { id: 'v5', name: 'Stark Industries', email: 'defense@stark.com', category: 'R&D', gstNo: '27AABCU9607R1ZN', contactNo: '+1 555-0104', score: 99, status: 'APPROVED' },
 ];
 
 export default function VendorsPage() {
@@ -60,11 +60,12 @@ export default function VendorsPage() {
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 border-b border-border text-muted-foreground text-xs uppercase font-bold tracking-wider">
               <tr>
-                <th className="px-6 py-4">Vendor</th>
+                <th className="px-6 py-4">Vendor Name</th>
                 <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Compliance Score</th>
+                <th className="px-6 py-4">GST No.</th>
+                <th className="px-6 py-4">Contact No.</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -87,15 +88,10 @@ export default function VendorsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={cn("h-full", vendor.score >= 90 ? "bg-emerald-500" : vendor.score >= 80 ? "bg-amber-500" : "bg-rose-500")} 
-                          style={{ width: `${vendor.score}%` }} 
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-foreground">{vendor.score}%</span>
-                    </div>
+                    <span className="font-mono text-xs text-muted-foreground">{vendor.gstNo}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-medium text-foreground">{vendor.contactNo}</span>
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={vendor.status} />

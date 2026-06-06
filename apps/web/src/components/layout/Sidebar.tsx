@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 const allNavItems = [
   // Dashboard is shared but conceptually different for VENDOR
@@ -45,6 +46,11 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     clearAuth();
@@ -54,6 +60,10 @@ export default function Sidebar() {
   const filteredNav = allNavItems.filter(
     (item) => !user?.role || item.roles.includes(user.role)
   );
+
+  if (!mounted) {
+    return <aside className="w-64 bg-card border-r border-border flex flex-col shrink-0"></aside>;
+  }
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col shrink-0">

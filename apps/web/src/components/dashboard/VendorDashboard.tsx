@@ -56,9 +56,12 @@ export function VendorDashboard() {
                     Requested by <span className="font-semibold">{rfq.org}</span> · Due {formatDate(rfq.deadline)}
                   </p>
                 </div>
-                <button className="text-xs font-bold bg-[#14B8A6] text-white px-4 py-2 rounded-lg hover:bg-[#109A8B] transition-colors whitespace-nowrap">
+                <Link 
+                  href="/vendor-portal/quotations/new"
+                  className="text-xs font-bold bg-[#14B8A6] text-white px-4 py-2 rounded-lg hover:bg-[#109A8B] transition-colors whitespace-nowrap"
+                >
                   Submit Quote
-                </button>
+                </Link>
               </div>
             ))}
             {openInvitations.length === 0 && (
