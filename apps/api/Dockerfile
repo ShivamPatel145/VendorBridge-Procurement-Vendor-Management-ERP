@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -25,8 +28,13 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install only production dependencies
+# Install OpenSSL for Prisma (required for libquery_engine)
+RUN apk add --no-cache openssl libc6-compat
+
+# Copy package files
 COPY package*.json ./
+
+# Install only production dependencies
 RUN npm install --production
 
 # Copy Prisma schema and generate client
