@@ -39,18 +39,22 @@ interface PO {
   createdBy?: { name: string };
 }
 
-export default function PurchaseOrderDetail({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function PurchaseOrderDetail({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const { id } = unwrappedParams;
   const [po, setPO] = useState<PO | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const docRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    purchaseOrderAPI.get(params.id)
+    purchaseOrderAPI.get(id)
       .then(res => setPO(res.data?.data ?? res.data))
       .catch(() => toast.error('Failed to load Purchase Order'))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   const handlePrint = () => window.print();
 
@@ -58,7 +62,7 @@ export default function PurchaseOrderDetail({ params }: { params: { id: string }
     if (!docRef.current) return;
     setDownloading(true);
     toast.info('Generating PDF...');
-    const filename = `${po?.poNumber ?? params.id}.pdf`;
+    const filename = `${po?.poNumber ?? id}.pdf`;
     const ok = await generatePDFFromElement(docRef.current, filename, (msg) => {
       if (msg === 'Done!') toast.success('PDF downloaded successfully!');
     });
@@ -134,7 +138,7 @@ export default function PurchaseOrderDetail({ params }: { params: { id: string }
             <p style={{ color: '#94A3B8', fontSize: 11, marginTop: 6 }}>Tax ID: US-987654321</p>
           </div>
           <div className="text-left sm:text-right">
-            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#CBD5E1', marginBottom: 8 }}>{po?.poNumber ?? params.id}</h2>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#CBD5E1', marginBottom: 8 }}>{po?.poNumber ?? id}</h2>
             <div style={{ marginBottom: 12 }}>
               <StatusBadge status={po?.status ?? 'DRAFT'} />
             </div>

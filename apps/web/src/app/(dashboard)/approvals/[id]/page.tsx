@@ -27,7 +27,12 @@ const APP_DATA = {
   }
 };
 
-export default function ApprovalDetailView({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function ApprovalDetailView({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const { id } = unwrappedParams;
+
   const router = useRouter();
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +73,7 @@ export default function ApprovalDetailView({ params }: { params: { id: string } 
           <div className="bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
             Pending Approval
           </div>
-          <span className="text-sm text-muted-foreground">{params.id}</span>
+          <span className="text-sm text-muted-foreground">{id}</span>
         </div>
         <h2 className="text-3xl font-bold text-foreground tracking-tight">{APP_DATA.rfqTitle}</h2>
       </div>

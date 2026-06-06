@@ -28,18 +28,22 @@ interface Invoice {
   items?: InvoiceItem[];
 }
 
-export default function InvoiceDetail({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const { id } = unwrappedParams;
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const docRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    invoiceAPI.get(params.id)
+    invoiceAPI.get(id)
       .then(res => setInvoice(res.data?.data ?? res.data))
       .catch(() => toast.error('Failed to load Invoice'))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   const handlePrint = () => window.print();
 
@@ -47,7 +51,7 @@ export default function InvoiceDetail({ params }: { params: { id: string } }) {
     if (!docRef.current) return;
     setDownloading(true);
     toast.info('Generating PDF…');
-    const filename = `${invoice?.invoiceNumber ?? params.id}.pdf`;
+    const filename = `${invoice?.invoiceNumber ?? id}.pdf`;
     const ok = await generatePDFFromElement(docRef.current, filename, (msg) => {
       if (msg === 'Done!') toast.success('Invoice PDF downloaded!');
     });
@@ -117,7 +121,7 @@ export default function InvoiceDetail({ params }: { params: { id: string } }) {
             {vendor?.email && <p style={{ fontSize: 12, color: '#64748B' }}>{vendor.email}</p>}
           </div>
           <div className="text-left sm:text-right">
-            <h2 style={{ fontSize: 28, fontWeight: 900, color: '#CBD5E1', marginBottom: 8 }}>{invoice?.invoiceNumber ?? params.id}</h2>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: '#CBD5E1', marginBottom: 8 }}>{invoice?.invoiceNumber ?? id}</h2>
             <div style={{ marginBottom: 12 }}>
               <StatusBadge status={invoice?.status ?? 'PENDING'} />
             </div>

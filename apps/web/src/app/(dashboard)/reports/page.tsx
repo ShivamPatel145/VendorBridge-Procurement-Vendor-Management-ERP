@@ -3,7 +3,7 @@
 import { BarChart3, Users, CheckCircle2, AlertCircle } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import { formatCurrency } from '@/lib/utils';
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 
 // Wireframe data
 const stats = [
@@ -132,7 +132,7 @@ export default function ReportsPage() {
                     >
                       {
                         monthlyTrend.map((entry, index) => (
-                          <cell key={`cell-${index}`} fill={index === monthlyTrend.length - 1 ? '#1d4ed8' : '#93c5fd'} />
+                          <Cell key={`cell-${index}`} fill={index === monthlyTrend.length - 1 ? '#1d4ed8' : '#93c5fd'} />
                         ))
                       }
                     </Bar>
