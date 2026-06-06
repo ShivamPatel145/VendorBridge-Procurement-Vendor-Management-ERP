@@ -122,7 +122,7 @@ export function ProcurementDashboard() {
               { href: '/purchase-orders', label: 'Purchase Orders', color: 'emerald' },
               { href: '/invoices', label: 'Invoices', color: 'rose' },
             ].map(({ href, label, color }) => (
-              <Link key={href} href={href} className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-[#14B8A6]/40 hover:bg-[#14B8A6]/5 transition-all group">
+              <Link key={href} href={href as any} className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-[#14B8A6]/40 hover:bg-[#14B8A6]/5 transition-all group">
                 <span className="text-sm font-medium text-foreground group-hover:text-[#14B8A6] transition-colors">{label}</span>
                 <span className="text-muted-foreground group-hover:text-[#14B8A6] text-xs">→</span>
               </Link>

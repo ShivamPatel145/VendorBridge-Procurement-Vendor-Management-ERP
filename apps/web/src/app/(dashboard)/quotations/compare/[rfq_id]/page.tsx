@@ -71,7 +71,12 @@ const MOCK_QUOTATIONS = [
   },
 ];
 
-export default function QuotationComparePage({ params }: { params: { rfq_id: string } }) {
+import { use } from 'react';
+
+export default function QuotationComparePage({ params }: { params: Promise<{ rfq_id: string }> }) {
+  const unwrappedParams = use(params);
+  const { rfq_id } = unwrappedParams;
+
   const router = useRouter();
   const [selectedQuotation, setSelectedQuotation] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

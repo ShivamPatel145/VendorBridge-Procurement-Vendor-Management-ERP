@@ -95,9 +95,9 @@ export default function VendorQuotationsPage() {
                       <button onClick={() => handleDownload(q)} className="p-2 text-muted-foreground hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 rounded-md transition-colors" title="Download PDF">
                         <Download className="w-4 h-4" />
                       </button>
-                      <Link href={`/quotations/${q.id}`} className="p-2 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 rounded-md transition-colors inline-block" title="View">
+                      <button onClick={() => window.location.href = `/quotations/${q.id}`} className="p-2 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 rounded-md transition-colors inline-block" title="View">
                         <Eye className="w-4 h-4" />
-                      </Link>
+                      </button>
                     </div>
                   </td>
                 </tr>

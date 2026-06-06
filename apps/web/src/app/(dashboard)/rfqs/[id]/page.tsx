@@ -26,7 +26,11 @@ const RFQ_DATA = {
   ]
 };
 
-export default function RFQDetailView({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function RFQDetailView({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const { id } = unwrappedParams;
   
   return (
     <div className="max-w-5xl mx-auto animate-in fade-in duration-500 pb-12">
@@ -39,7 +43,7 @@ export default function RFQDetailView({ params }: { params: { id: string } }) {
         
         {RFQ_DATA.status === 'EVALUATING' && (
           <Link 
-            href={`/quotations/compare/${params.id}`}
+            href={`/quotations/compare/${id}`}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#14B8A6] hover:bg-[#109A8B] text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
           >
             <FileSpreadsheet className="w-4 h-4" /> Compare Quotations Matrix
