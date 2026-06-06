@@ -1,0 +1,467 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  PROCUREMENT_OFFICER
+  MANAGER
+  VENDOR
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum RFQStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  EVALUATING
+  AWARDED
+  CANCELLED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum POStatus {
+  DRAFT
+  APPROVED
+  SENT
+  ACKNOWLEDGED
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  SENT
+  PAID
+  CANCELLED
+}
+
+enum NotificationType {
+  RFQ_INVITED
+  QUOTATION_RECEIVED
+  APPROVAL_REQUIRED
+  APPROVAL_DONE
+  PO_GENERATED
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+}
+
+// ─── USERS ────────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         Role      @default(PROCUREMENT_OFFICER)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  vendor          Vendor?
+  approvalActions ApprovalAction[]
+  activityLogs    ActivityLog[]
+  notifications   Notification[]
+  createdRFQs     RFQ[]           @relation("RFQCreator")
+  createdPOs      PurchaseOrder[] @relation("POCreator")
+  createdInvoices Invoice[]       @relation("InvoiceCreator")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// ─── VENDORS ──────────────────────────────────────────────────
+
+model Vendor {
+  id            String       @id @default(cuid())
+  userId        String       @unique @map("user_id")
+  companyName   String       @map("company_name")
+  contactPerson String       @map("contact_person")
+  phone         String
+  address       String
+  taxId         String?      @map("tax_id")
+  website       String?
+  status        VendorStatus @default(PENDING)
+  rating        Float?
+  categoryId    String?      @map("category_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  user       User            @relation(fields: [userId], references: [id])
+  category   VendorCategory? @relation(fields: [categoryId], references: [id])
+  documents  VendorDocument[]
+  rfqVendors RFQVendor[]
+  quotations Quotation[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@map("vendors")
+}
+
+model VendorCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  vendors Vendor[]
+
+  @@map("vendor_categories")
+}
+
+model VendorDocument {
+  id         String   @id @default(cuid())
+  vendorId   String   @map("vendor_id")
+  name       String
+  fileUrl    String   @map("file_url")
+  fileType   String   @map("file_type")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@map("vendor_documents")
+}
+
+// ─── RFQ ──────────────────────────────────────────────────────
+
+model RFQ {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      RFQStatus @default(DRAFT)
+  deadline    DateTime
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  createdBy   User            @relation("RFQCreator", fields: [createdById], references: [id])
+  items       RFQItem[]
+  vendors     RFQVendor[]
+  attachments RFQAttachment[]
+  quotations  Quotation[]
+
+  @@index([status])
+  @@index([deadline])
+  @@map("rfqs")
+}
+
+model RFQItem {
+  id          String @id @default(cuid())
+  rfqId       String @map("rfq_id")
+  description String
+  quantity    Int
+  unit        String
+
+  rfq RFQ @relation(fields: [rfqId], references: [id])
+
+  @@index([rfqId])
+  @@map("rfq_items")
+}
+
+model RFQVendor {
+  id        String   @id @default(cuid())
+  rfqId     String   @map("rfq_id")
+  vendorId  String   @map("vendor_id")
+  invitedAt DateTime @default(now()) @map("invited_at")
+  viewed    Boolean  @default(false)
+
+  rfq    RFQ    @relation(fields: [rfqId], references: [id])
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@unique([rfqId, vendorId])
+  @@map("rfq_vendors")
+}
+
+model RFQAttachment {
+  id        String   @id @default(cuid())
+  rfqId     String   @map("rfq_id")
+  fileUrl   String   @map("file_url")
+  fileName  String   @map("file_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  rfq RFQ @relation(fields: [rfqId], references: [id])
+
+  @@map("rfq_attachments")
+}
+
+// ─── QUOTATIONS ───────────────────────────────────────────────
+
+model Quotation {
+  id          String          @id @default(cuid())
+  rfqId       String          @map("rfq_id")
+  vendorId    String          @map("vendor_id")
+  status      QuotationStatus @default(DRAFT)
+  totalAmount Decimal         @map("total_amount") @db.Decimal(12, 2)
+  notes       String?
+  validUntil  DateTime?       @map("valid_until")
+  submittedAt DateTime?       @map("submitted_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  deletedAt   DateTime?       @map("deleted_at")
+
+  rfq            RFQ                  @relation(fields: [rfqId], references: [id])
+  vendor         Vendor               @relation(fields: [vendorId], references: [id])
+  items          QuotationItem[]
+  attachments    QuotationAttachment[]
+  approvals      ApprovalWorkflow[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([rfqId])
+  @@index([vendorId])
+  @@index([status])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id          String   @id @default(cuid())
+  quotationId String   @map("quotation_id")
+  rfqItemId   String?  @map("rfq_item_id")
+  description String
+  quantity    Int
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice  Decimal  @map("total_price") @db.Decimal(12, 2)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+
+  @@index([quotationId])
+  @@map("quotation_items")
+}
+
+model QuotationAttachment {
+  id          String   @id @default(cuid())
+  quotationId String   @map("quotation_id")
+  fileUrl     String   @map("file_url")
+  fileName    String   @map("file_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+
+  @@map("quotation_attachments")
+}
+
+// ─── APPROVALS ────────────────────────────────────────────────
+
+model ApprovalWorkflow {
+  id          String         @id @default(cuid())
+  quotationId String         @map("quotation_id")
+  currentStep Int            @default(1) @map("current_step")
+  totalSteps  Int            @default(1) @map("total_steps")
+  status      ApprovalStatus @default(PENDING)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  quotation Quotation      @relation(fields: [quotationId], references: [id])
+  steps     ApprovalStep[]
+
+  @@index([quotationId])
+  @@index([status])
+  @@map("approval_workflows")
+}
+
+model ApprovalStep {
+  id         String         @id @default(cuid())
+  workflowId String         @map("workflow_id")
+  stepNumber Int            @map("step_number")
+  approverId String         @map("approver_id")
+  status     ApprovalStatus @default(PENDING)
+  dueDate    DateTime?      @map("due_date")
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  workflow ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  actions  ApprovalAction[]
+
+  @@index([workflowId])
+  @@map("approval_steps")
+}
+
+model ApprovalAction {
+  id      String         @id @default(cuid())
+  stepId  String         @map("step_id")
+  userId  String         @map("user_id")
+  action  ApprovalStatus
+  comment String?
+  actedAt DateTime       @default(now()) @map("acted_at")
+
+  step ApprovalStep @relation(fields: [stepId], references: [id])
+  user User         @relation(fields: [userId], references: [id])
+
+  @@map("approval_actions")
+}
+
+// ─── PURCHASE ORDERS ──────────────────────────────────────────
+
+model PurchaseOrder {
+  id           String    @id @default(cuid())
+  poNumber     String    @unique @map("po_number")
+  quotationId  String    @map("quotation_id")
+  createdById  String    @map("created_by_id")
+  status       POStatus  @default(DRAFT)
+  totalAmount  Decimal   @map("total_amount") @db.Decimal(12, 2)
+  deliveryDate DateTime? @map("delivery_date")
+  terms        String?
+  pdfUrl       String?   @map("pdf_url")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  createdBy User      @relation("POCreator", fields: [createdById], references: [id])
+  items     POItem[]
+  invoices  Invoice[]
+
+  @@index([status])
+  @@index([poNumber])
+  @@map("purchase_orders")
+}
+
+model POItem {
+  id          String        @id @default(cuid())
+  poId        String        @map("po_id")
+  description String
+  quantity    Int
+  unitPrice   Decimal       @map("unit_price") @db.Decimal(10, 2)
+  totalPrice  Decimal       @map("total_price") @db.Decimal(12, 2)
+
+  po PurchaseOrder @relation(fields: [poId], references: [id])
+
+  @@map("po_items")
+}
+
+// ─── INVOICES ─────────────────────────────────────────────────
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique @map("invoice_number")
+  poId          String        @map("po_id")
+  createdById   String        @map("created_by_id")
+  status        InvoiceStatus @default(DRAFT)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
+  dueDate       DateTime      @map("due_date")
+  paidAt        DateTime?     @map("paid_at")
+  pdfUrl        String?       @map("pdf_url")
+  emailSentAt   DateTime?     @map("email_sent_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  po        PurchaseOrder @relation(fields: [poId], references: [id])
+  createdBy User          @relation("InvoiceCreator", fields: [createdById], references: [id])
+  items     InvoiceItem[]
+  payments  Payment[]
+
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  description String
+  quantity    Int
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice  Decimal  @map("total_price") @db.Decimal(12, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String   @map("invoice_id")
+  amount    Decimal  @db.Decimal(12, 2)
+  method    String
+  reference String?
+  paidAt    DateTime @default(now()) @map("paid_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+}
+
+// ─── NOTIFICATIONS & LOGS ─────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  link      String?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model EmailLog {
+  id       String   @id @default(cuid())
+  to       String
+  subject  String
+  template String
+  status   String
+  resendId String?  @map("resend_id")
+  sentAt   DateTime @default(now()) @map("sent_at")
+
+  @@map("email_logs")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
