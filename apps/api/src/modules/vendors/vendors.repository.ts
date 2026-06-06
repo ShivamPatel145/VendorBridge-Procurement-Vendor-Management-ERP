@@ -15,9 +15,24 @@ export class VendorsRepository {
     });
   }
 
-  public static async findByUserId(userId: string): Promise<Vendor | null> {
+  public static async findByUserId(userId: string): Promise<any | null> {
     return prisma.vendor.findFirst({
       where: { userId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        category: true,
+        documents: {
+          orderBy: {
+            uploadedAt: 'desc',
+          },
+        },
+      },
     });
   }
 
