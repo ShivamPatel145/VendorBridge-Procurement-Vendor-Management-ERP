@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VendorBridge — System Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1628;
+    --bg3: #151d35;
+    --border: #1e2d50;
+    --border2: #263654;
+    --accent: #3b7fff;
+    --accent2: #00d4aa;
+    --accent3: #f59e0b;
+    --accent4: #f43f5e;
+    --text: #e2e8f8;
+    --text2: #8fa4cc;
+    --text3: #5a7399;
+    --pill-bg: #1a2540;
+    --code-bg: #0d1422;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 28px 0 40px;
+    flex-shrink: 0;
+  }
+  .sidebar-logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .sidebar-logo .wordmark {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -.3px;
+  }
+  .sidebar-logo .wordmark span { color: var(--accent); }
+  .sidebar-logo .sub {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 2px;
+  }
+  .nav-section {
+    padding: 0 12px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-top: 12px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 20px;
+    font-size: 12.5px;
+    color: var(--text2);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(59,127,255,.08); }
+  .nav-item .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    min-width: 18px;
+  }
+
+  .main { flex: 1; padding: 48px 56px; max-width: 960px; overflow-x: hidden; }
+
+  /* ── Header ── */
+  .doc-header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .doc-header .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    background: rgba(0,212,170,.1);
+    border: 1px solid rgba(0,212,170,.2);
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+  .doc-header h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .doc-header h1 span { color: var(--accent); }
+  .doc-header .meta {
+    font-size: 13px;
+    color: var(--text2);
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .doc-header .meta span { display: flex; align-items: center; gap: 5px; }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 64px; scroll-margin-top: 24px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(59,127,255,.12);
+    border: 1px solid rgba(59,127,255,.2);
+    padding: 3px 8px;
+    border-radius: 4px;
+    min-width: 32px;
+    text-align: center;
+  }
+  .section-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -.2px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 10px;
+  }
+  .card p { font-size: 13.5px; color: var(--text2); line-height: 1.75; }
+
+  /* ── Grid ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  @media (max-width: 800px) { .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+  /* ── Mermaid wrapper ── */
+  .mermaid-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 20px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .mermaid-wrap .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .mermaid { display: flex; justify-content: center; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+  thead tr { background: var(--bg3); }
+  th { padding: 10px 14px; text-align: left; font-weight: 600; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; border-bottom: 1px solid var(--border2); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { color: var(--text); font-weight: 500; }
+
+  /* ── Badges / pills ── */
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin: 2px 3px 2px 0;
+  }
+  .badge-blue { background: rgba(59,127,255,.15); color: #7ab0ff; border: 1px solid rgba(59,127,255,.25); }
+  .badge-green { background: rgba(0,212,170,.12); color: #00d4aa; border: 1px solid rgba(0,212,170,.2); }
+  .badge-amber { background: rgba(245,158,11,.12); color: #f59e0b; border: 1px solid rgba(245,158,11,.2); }
+  .badge-red { background: rgba(244,63,94,.12); color: #f43f5e; border: 1px solid rgba(244,63,94,.2); }
+  .badge-purple { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.2); }
+
+  /* ── Code blocks ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #a8c4f0;
+    overflow-x: auto;
+    margin: 14px 0;
+    line-height: 1.6;
+  }
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #a8c4f0;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .callout-info { background: rgba(59,127,255,.08); border: 1px solid rgba(59,127,255,.2); color: #7ab0ff; }
+  .callout-warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); color: #f59e0b; }
+  .callout-success { background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.2); color: #00d4aa; }
+
+  /* ── List ── */
+  ul.styled { list-style: none; padding: 0; }
+  ul.styled li {
+    padding: 5px 0 5px 18px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--text2);
+    line-height: 1.65;
+  }
+  ul.styled li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── Folder tree ── */
+  .tree {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #a8c4f0;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+    overflow-x: auto;
+  }
+  .tree .dir { color: #7ab0ff; font-weight: 500; }
+  .tree .file { color: #8fa4cc; }
+  .tree .comment { color: var(--text3); }
+
+  /* ── divider ── */
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+
+  /* ── Back to top ── */
+  #back-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  #back-top.visible { display: flex; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="wordmark">Vendor<span>Bridge</span></div>
+    <div class="sub">System Architecture v1.0</div>
+  </div>
+
+  <div class="nav-section">Architecture</div>
+  <a class="nav-item active" href="#s1"><span class="num">01</span>System Overview</a>
+  <a class="nav-item" href="#s2"><span class="num">02</span>Module Breakdown</a>
+  <a class="nav-item" href="#s3"><span class="num">03</span>Folder Structure</a>
+  <a class="nav-item" href="#s4"><span class="num">04</span>Domain Boundaries</a>
+  <a class="nav-item" href="#s5"><span class="num">05</span>Service Architecture</a>
+
+  <div class="nav-section">Security</div>
+  <a class="nav-item" href="#s6"><span class="num">06</span>Authentication</a>
+  <a class="nav-item" href="#s7"><span class="num">07</span>Authorization</a>
+  <a class="nav-item" href="#s14"><span class="num">14</span>Security</a>
+
+  <div class="nav-section">Data & APIs</div>
+  <a class="nav-item" href="#s8"><span class="num">08</span>Database Architecture</a>
+  <a class="nav-item" href="#s9"><span class="num">09</span>API Architecture</a>
+
+  <div class="nav-section">Infra</div>
+  <a class="nav-item" href="#s10"><span class="num">10</span>Notification</a>
+  <a class="nav-item" href="#s11"><span class="num">11</span>File Upload</a>
+  <a class="nav-item" href="#s12"><span class="num">12</span>Reporting</a>
+  <a class="nav-item" href="#s13"><span class="num">13</span>Deployment</a>
+  <a class="nav-item" href="#s15"><span class="num">15</span>Scalability</a>
+</nav>
+
+<!-- ── MAIN ── -->
+<main class="main">
+
+  <div class="doc-header">
+    <div class="tag">◈ Principal Architecture Document</div>
+    <h1><span>VendorBridge</span> ERP<br>System Architecture</h1>
+    <div class="meta">
+      <span>🗓 June 2026</span>
+      <span>🔖 v1.0.0</span>
+      <span>⚙ Next.js 15 + Express + PostgreSQL</span>
+      <span>☁ Vercel + Render</span>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 01  SYSTEM OVERVIEW                          -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Complete System Architecture</h2>
+    </div>
+
+    <p style="color:var(--text2);font-size:13.5px;margin-bottom:20px;">
+      VendorBridge is a multi-tenant Procurement & Vendor Management ERP built on a decoupled
+      frontend/backend architecture. The Next.js 15 frontend communicates exclusively with the
+      Express REST API; all integrations (Resend, Cloudinary, Upstash, PDFKit) live in the backend
+      service layer, never exposed to the browser.
+    </p>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ High-level system architecture</div>
+      <div class="mermaid">
+graph TB
+  subgraph Client["Client Layer"]
+    B["Browser / Mobile\nNext.js 15 + TypeScript"]
+  end
+
+  subgraph CDN["Edge / CDN"]
+    V["Vercel Edge Network\nSSR · ISR · Static"]
+  end
+
+  subgraph API["API Layer — Render"]
+    E["Express.js REST API\nNode.js + TypeScript"]
+    MW["Middleware Stack\nAuth · RBAC · Rate-limit · Validator"]
+  end
+
+  subgraph Services["Service Layer"]
+    AUTH["Auth Service\nJWT + Refresh"]
+    VND["Vendor Service"]
+    RFQ["RFQ Service"]
+    QUOT["Quotation Service"]
+    APPR["Approval Service"]
+    PO["PO Service"]
+    INV["Invoice Service"]
+    RPT["Report Service"]
+    LOG["Activity Log Service"]
+    NOTIF["Notification Service"]
+  end
+
+  subgraph Data["Data Layer"]
+    PG[("PostgreSQL\nNeon Serverless")]
+    REDIS[("Upstash Redis\nCache · Sessions")]
+  end
+
+  subgraph External["External Services"]
+    CLD["Cloudinary\nFile Storage"]
+    RESEND["Resend\nEmail Delivery"]
+    PDF["PDFKit\nPDF Generation"]
+  end
+
+  B --> V --> E
+  E --> MW --> Services
+  Services --> PG
+  Services --> REDIS
+  AUTH --> REDIS
+  NOTIF --> RESEND
+  INV --> PDF
+  VND --> CLD
+  RFQ --> CLD
+
+  style Client fill:#0f1628,stroke:#1e2d50,color:#e2e8f8
+  style CDN fill:#0f1628,stroke:#1e2d50,color:#e2e8f8
+  style API fill:#0f1628,stroke:#1e2d50,color:#e2e8f8
+  style Services fill:#0f1628,stroke:#1e2d50,color:#e2e8f8
+  style Data fill:#0f1628,stroke:#1e2d50,color:#e2e8f8
+  style External fill:#0f1628,stroke:#1e2d50,color:#e2e8f8
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card">
+        <h3>Frontend</h3>
+        <p>Next.js 15 App Router with SSR/ISR. TanStack Query for server state. React Hook Form + Zod for forms. Shadcn UI components.</p>
+      </div>
+      <div class="card">
+        <h3>Backend</h3>
+        <p>Express.js REST API with layered middleware. Prisma ORM over Neon PostgreSQL. Upstash Redis for caching & sessions.</p>
+      </div>
+      <div class="card">
+        <h3>Infrastructure</h3>
+        <p>Vercel for frontend edge delivery. Render for backend container hosting. Cloudinary for binary assets. Resend for transactional email.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 02  MODULE BREAKDOWN                         -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Module Breakdown</h2>
+    </div>
+
+    <table>
+      <thead><tr><th>Module</th><th>Responsibility</th><th>Key Entities</th><th>Roles</th></tr></thead>
+      <tbody>
+        <tr><td>Auth</td><td>JWT login, signup, role assignment, session refresh</td><td>User, Session, RefreshToken</td><td>All</td></tr>
+        <tr><td>Vendor</td><td>Registration, GST details, status, categories</td><td>Vendor, VendorCategory</td><td>Admin, Officer</td></tr>
+        <tr><td>RFQ</td><td>Create, publish, assign vendors, manage deadlines</td><td>RFQ, RFQItem, RFQVendor</td><td>Officer</td></tr>
+        <tr><td>Quotation</td><td>Vendor submission, draft/final, comparison</td><td>Quotation, QuotationItem</td><td>Vendor, Officer</td></tr>
+        <tr><td>Approval</td><td>Multi-level workflow, approve/reject, remarks</td><td>ApprovalWorkflow, ApprovalStep</td><td>Manager, Admin</td></tr>
+        <tr><td>Purchase Order</td><td>Auto-generate PO from approved quotation</td><td>PurchaseOrder, POItem</td><td>Officer</td></tr>
+        <tr><td>Invoice</td><td>Generate, tax compute, PDF, email, status</td><td>Invoice, InvoiceItem</td><td>Officer, Vendor</td></tr>
+        <tr><td>Activity Logs</td><td>Immutable audit trail for all procurement events</td><td>ActivityLog</td><td>Admin, Officer</td></tr>
+        <tr><td>Reports</td><td>Spend analytics, vendor performance, monthly trend</td><td>Aggregated views</td><td>Admin, Manager</td></tr>
+        <tr><td>Notifications</td><td>In-app + email alerts triggered by workflow events</td><td>Notification</td><td>All</td></tr>
+      </tbody>
+    </table>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Core procurement workflow (happy path)</div>
+      <div class="mermaid">
+flowchart LR
+  A([Officer\nCreates RFQ]) --> B[Vendors\nAssigned]
+  B --> C([Vendors\nSubmit Quotes])
+  C --> D[Quotation\nComparison]
+  D --> E{Select\nVendor}
+  E --> F[L1 Approval\nProcurement Head]
+  F --> G{Approved?}
+  G -- Yes --> H[L2 Approval\nFinance Manager]
+  G -- No --> D
+  H --> I{Approved?}
+  I -- Yes --> J[Auto-Generate\nPurchase Order]
+  I -- No --> D
+  J --> K[Invoice\nGeneration]
+  K --> L([PDF Download\n/ Email Send])
+
+  style A fill:#0f1628,stroke:#3b7fff,color:#e2e8f8
+  style C fill:#0f1628,stroke:#3b7fff,color:#e2e8f8
+  style L fill:#0f1628,stroke:#00d4aa,color:#e2e8f8
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 03  FOLDER STRUCTURE                         -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Folder Structure</h2>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <p style="color:var(--text3);font-size:11px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;">FRONTEND — apps/web</p>
+        <div class="tree">
+<span class="dir">apps/web/</span>
+├── <span class="dir">app/</span>              <span class="comment"># App Router</span>
+│   ├── <span class="dir">(auth)/</span>
+│   │   ├── <span class="file">login/page.tsx</span>
+│   │   └── <span class="file">register/page.tsx</span>
+│   ├── <span class="dir">(dashboard)/</span>
+│   │   ├── <span class="file">layout.tsx</span>
+│   │   ├── <span class="file">page.tsx</span>
+│   │   ├── <span class="dir">vendors/</span>
+│   │   ├── <span class="dir">rfqs/</span>
+│   │   ├── <span class="dir">quotations/</span>
+│   │   ├── <span class="dir">approvals/</span>
+│   │   ├── <span class="dir">purchase-orders/</span>
+│   │   ├── <span class="dir">invoices/</span>
+│   │   ├── <span class="dir">reports/</span>
+│   │   └── <span class="dir">activity/</span>
+│   ├── <span class="file">layout.tsx</span>
+│   └── <span class="file">globals.css</span>
+├── <span class="dir">components/</span>
+│   ├── <span class="dir">ui/</span>          <span class="comment"># shadcn</span>
+│   ├── <span class="dir">shared/</span>      <span class="comment"># reusable</span>
+│   └── <span class="dir">modules/</span>     <span class="comment"># feature</span>
+├── <span class="dir">hooks/</span>
+├── <span class="dir">lib/</span>
+│   ├── <span class="file">api-client.ts</span>
+│   ├── <span class="file">auth.ts</span>
+│   └── <span class="file">utils.ts</span>
+├── <span class="dir">providers/</span>
+├── <span class="dir">store/</span>        <span class="comment"># Zustand</span>
+├── <span class="dir">types/</span>
+└── <span class="file">middleware.ts</span>
+        </div>
+      </div>
+      <div>
+        <p style="color:var(--text3);font-size:11px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;">BACKEND — apps/api</p>
+        <div class="tree">
+<span class="dir">apps/api/</span>
+├── <span class="dir">src/</span>
+│   ├── <span class="dir">config/</span>
+│   │   ├── <span class="file">db.ts</span>
+│   │   ├── <span class="file">redis.ts</span>
+│   │   └── <span class="file">env.ts</span>
+│   ├── <span class="dir">middleware/</span>
+│   │   ├── <span class="file">auth.middleware.ts</span>
+│   │   ├── <span class="file">rbac.middleware.ts</span>
+│   │   ├── <span class="file">rateLimit.ts</span>
+│   │   └── <span class="file">validate.ts</span>
+│   ├── <span class="dir">modules/</span>
+│   │   ├── <span class="dir">auth/</span>
+│   │   │   ├── <span class="file">auth.controller.ts</span>
+│   │   │   ├── <span class="file">auth.service.ts</span>
+│   │   │   ├── <span class="file">auth.schema.ts</span>
+│   │   │   └── <span class="file">auth.routes.ts</span>
+│   │   ├── <span class="dir">vendors/</span>
+│   │   ├── <span class="dir">rfqs/</span>
+│   │   ├── <span class="dir">quotations/</span>
+│   │   ├── <span class="dir">approvals/</span>
+│   │   ├── <span class="dir">purchase-orders/</span>
+│   │   ├── <span class="dir">invoices/</span>
+│   │   ├── <span class="dir">reports/</span>
+│   │   └── <span class="dir">activity/</span>
+│   ├── <span class="dir">services/</span>
+│   │   ├── <span class="file">email.service.ts</span>
+│   │   ├── <span class="file">pdf.service.ts</span>
+│   │   ├── <span class="file">storage.service.ts</span>
+│   │   └── <span class="file">notification.service.ts</span>
+│   ├── <span class="dir">utils/</span>
+│   └── <span class="file">app.ts</span>
+└── <span class="dir">prisma/</span>
+    ├── <span class="file">schema.prisma</span>
+    └── <span class="dir">migrations/</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span>ℹ</span>
+      <span>Use a <strong>Turborepo monorepo</strong> at root with <code>apps/web</code>, <code>apps/api</code>, and <code>packages/shared</code> (shared TypeScript types, Zod schemas, constants). This ensures full type safety across the stack with zero duplication.</span>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 04  DOMAIN BOUNDARIES                        -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Domain Boundaries</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Domain context map (bounded contexts)</div>
+      <div class="mermaid">
+graph TD
+  subgraph IdentityCtx["Identity Context"]
+    U[User] --> R[Role]
+    U --> S[Session]
+  end
+
+  subgraph VendorCtx["Vendor Context"]
+    VN[Vendor] --> VC[VendorCategory]
+    VN --> VD[VendorDoc]
+  end
+
+  subgraph ProcurementCtx["Procurement Context"]
+    RFQ[RFQ] --> RI[RFQItem]
+    RFQ --> RV[RFQVendor]
+  end
+
+  subgraph QuotationCtx["Quotation Context"]
+    Q[Quotation] --> QI[QuotationItem]
+    Q --> QC[QuoteComparison]
+  end
+
+  subgraph ApprovalCtx["Approval Context"]
+    AW[ApprovalWorkflow] --> AS[ApprovalStep]
+    AS --> AR[ApprovalRemark]
+  end
+
+  subgraph OrderCtx["Order Context"]
+    PO[PurchaseOrder] --> POI[POItem]
+  end
+
+  subgraph InvoiceCtx["Invoice Context"]
+    INV[Invoice] --> II[InvoiceItem]
+    INV --> TAX[TaxCalculation]
+  end
+
+  subgraph AnalyticsCtx["Analytics Context"]
+    LOG[ActivityLog]
+    RPT[ReportView]
+  end
+
+  IdentityCtx --> VendorCtx
+  VendorCtx --> ProcurementCtx
+  ProcurementCtx --> QuotationCtx
+  QuotationCtx --> ApprovalCtx
+  ApprovalCtx --> OrderCtx
+  OrderCtx --> InvoiceCtx
+  ProcurementCtx --> AnalyticsCtx
+  InvoiceCtx --> AnalyticsCtx
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Upstream Contexts</h3>
+        <ul class="styled">
+          <li>Identity Context owns User and Role — all other contexts reference User by FK only</li>
+          <li>Vendor Context is the supplier master — never managed from other contexts</li>
+          <li>Procurement Context initiates all RFQ-driven workflows</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Downstream Contexts</h3>
+        <ul class="styled">
+          <li>Quotation Context depends on RFQ + Vendor — read-only references</li>
+          <li>Approval Context reacts to Quotation selection events via domain events</li>
+          <li>Order and Invoice Contexts are terminal — they produce final documents</li>
+          <li>Analytics Context reads all contexts but never writes back</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 05  SERVICE ARCHITECTURE                     -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Service Architecture</h2>
+    </div>
+
+    <p style="color:var(--text2);font-size:13.5px;margin-bottom:18px;">
+      VendorBridge uses a <strong>Modular Monolith</strong> pattern — a single deployable Express app with
+      well-defined internal service boundaries. This provides domain isolation without distributed-system
+      complexity. Each module follows a strict 3-layer pattern: <em>Routes → Controller → Service → Prisma</em>.
+    </p>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Request lifecycle through service layers</div>
+      <div class="mermaid">
+sequenceDiagram
+  participant FE as Next.js Client
+  participant MW as Middleware Stack
+  participant CTRL as Controller
+  participant SVC as Service Layer
+  participant CACHE as Redis Cache
+  participant DB as PostgreSQL
+  participant EXT as External (Email/PDF/Storage)
+
+  FE->>MW: HTTP Request + JWT
+  MW->>MW: Verify JWT · RBAC · Rate-limit · Zod validate
+  MW->>CTRL: Validated request context
+  CTRL->>SVC: Call service method
+  SVC->>CACHE: Check cache (read path)
+  alt Cache HIT
+    CACHE-->>SVC: Cached data
+  else Cache MISS
+    SVC->>DB: Prisma query
+    DB-->>SVC: Result
+    SVC->>CACHE: Set cache (TTL)
+  end
+  SVC->>EXT: Side-effects (async)
+  SVC-->>CTRL: Business result
+  CTRL-->>FE: JSON Response
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Service</th><th>Pattern</th><th>Cache Strategy</th><th>Side-effects</th></tr></thead>
+      <tbody>
+        <tr><td>AuthService</td><td>Stateless JWT + Redis refresh token store</td><td>Token blocklist in Redis</td><td>Email on signup/reset</td></tr>
+        <tr><td>VendorService</td><td>CRUD + status FSM</td><td>Vendor list (5m TTL)</td><td>Cloudinary upload</td></tr>
+        <tr><td>RFQService</td><td>Command + publish event</td><td>Active RFQs (2m TTL)</td><td>Email to assigned vendors</td></tr>
+        <tr><td>QuotationService</td><td>Draft → Final state machine</td><td>None (writes invalidate)</td><td>—</td></tr>
+        <tr><td>ApprovalService</td><td>Step-based workflow engine</td><td>None</td><td>Email on approve/reject</td></tr>
+        <tr><td>POService</td><td>Auto-generation on approval</td><td>PO by ID (10m TTL)</td><td>Email to vendor</td></tr>
+        <tr><td>InvoiceService</td><td>PDF generation + email</td><td>None</td><td>PDFKit → Cloudinary → Resend</td></tr>
+        <tr><td>ReportService</td><td>Aggregation queries + materialized</td><td>Report snapshots (1h TTL)</td><td>—</td></tr>
+        <tr><td>ActivityService</td><td>Append-only event log</td><td>None</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 06  AUTHENTICATION                           -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s6">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Authentication Architecture</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ JWT authentication flow with refresh token rotation</div>
+      <div class="mermaid">
+sequenceDiagram
+  participant C as Client (Next.js)
+  participant API as Express API
+  participant REDIS as Redis
+  participant DB as PostgreSQL
+
+  C->>API: POST /auth/login {email, password}
+  API->>DB: Find user by email
+  DB-->>API: User record (hashed pw)
+  API->>API: bcrypt.compare(password, hash)
+  API->>API: Sign Access Token (15m) + Refresh Token (7d)
+  API->>REDIS: Store refreshToken hash (key: userId)
+  API-->>C: {accessToken, refreshToken} + HttpOnly cookie
+
+  Note over C,API: Access token expires after 15 min
+
+  C->>API: POST /auth/refresh {refreshToken in cookie}
+  API->>REDIS: Validate refresh token hash
+  REDIS-->>API: Valid
+  API->>API: Rotate — issue new Access + Refresh tokens
+  API->>REDIS: Invalidate old token, store new
+  API-->>C: New {accessToken, refreshToken}
+
+  Note over C,API: On logout
+
+  C->>API: POST /auth/logout
+  API->>REDIS: Delete refreshToken entry (blocklist accessToken)
+  API-->>C: 200 OK
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card">
+        <h3>Access Token</h3>
+        <p><span class="badge badge-blue">JWT RS256</span> 15-minute TTL. Payload: <code>userId</code>, <code>role</code>, <code>orgId</code>. Signed with RSA private key on backend.</p>
+      </div>
+      <div class="card">
+        <h3>Refresh Token</h3>
+        <p><span class="badge badge-green">HttpOnly Cookie</span> 7-day TTL. Stored as HMAC hash in Upstash Redis. Rotation on every use. Family invalidation on detect-reuse.</p>
+      </div>
+      <div class="card">
+        <h3>Password</h3>
+        <p><span class="badge badge-amber">bcrypt</span> cost factor 12. Forgot-password flow: short-lived (10m) signed token via Resend. Token one-time-use stored in Redis.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 07  AUTHORIZATION                            -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s7">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Authorization Architecture (RBAC)</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Role-based access control matrix</div>
+      <div class="mermaid">
+graph LR
+  subgraph Roles
+    ADMIN[Admin]
+    OFFICER[Procurement\nOfficer]
+    MANAGER[Manager/\nApprover]
+    VENDOR[Vendor]
+  end
+
+  subgraph Permissions
+    P1[Manage Users]
+    P2[Manage Vendors]
+    P3[Create RFQ]
+    P4[Submit Quotation]
+    P5[Compare Quotations]
+    P6[Approve/Reject]
+    P7[Generate PO]
+    P8[Generate Invoice]
+    P9[View Reports]
+    P10[View Activity Logs]
+  end
+
+  ADMIN --> P1
+  ADMIN --> P2
+  ADMIN --> P9
+  ADMIN --> P10
+
+  OFFICER --> P2
+  OFFICER --> P3
+  OFFICER --> P5
+  OFFICER --> P7
+  OFFICER --> P8
+
+  MANAGER --> P6
+  MANAGER --> P9
+
+  VENDOR --> P4
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>RBAC Implementation</h3>
+      <p>Middleware reads <code>role</code> from the verified JWT payload and checks a static permission map. Resource-level ownership checks (e.g., vendor can only submit to RFQs they're assigned to) are enforced inside each service method via Prisma <code>where</code> clause scoping, not in middleware.</p>
+    </div>
+
+    <pre>
+// rbac.middleware.ts
+const PERMISSIONS: Record&lt;Role, Permission[]&gt; = {
+  ADMIN:    ['manage:users','manage:vendors','view:reports','view:logs'],
+  OFFICER:  ['manage:vendors','create:rfq','compare:quotations','generate:po','generate:invoice'],
+  MANAGER:  ['approve:workflow','view:reports'],
+  VENDOR:   ['submit:quotation','view:rfq','view:po'],
+}
+
+export const requirePermission = (permission: Permission) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const role = req.user.role
+    if (!PERMISSIONS[role]?.includes(permission))
+      return res.status(403).json({ error: 'Forbidden' })
+    next()
+  }
+    </pre>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 08  DATABASE ARCHITECTURE                    -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s8">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Database Architecture</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Core entity-relationship diagram</div>
+      <div class="mermaid">
+erDiagram
+  USER {
+    uuid id PK
+    string email
+    string passwordHash
+    enum role
+    string firstName
+    string lastName
+    timestamp createdAt
+  }
+
+  VENDOR {
+    uuid id PK
+    string name
+    string gstin
+    string email
+    string phone
+    enum status
+    uuid categoryId FK
+    timestamp createdAt
+  }
+
+  VENDOR_CATEGORY {
+    uuid id PK
+    string name
+  }
+
+  RFQ {
+    uuid id PK
+    string title
+    text description
+    date deadline
+    enum status
+    uuid createdById FK
+    timestamp createdAt
+  }
+
+  RFQ_ITEM {
+    uuid id PK
+    uuid rfqId FK
+    string productName
+    int quantity
+    string unit
+  }
+
+  RFQ_VENDOR {
+    uuid rfqId FK
+    uuid vendorId FK
+    enum status
+  }
+
+  QUOTATION {
+    uuid id PK
+    uuid rfqId FK
+    uuid vendorId FK
+    decimal grandTotal
+    enum status
+    int gstPercent
+    string notes
+    timestamp submittedAt
+  }
+
+  QUOTATION_ITEM {
+    uuid id PK
+    uuid quotationId FK
+    string itemName
+    int quantity
+    decimal unitPrice
+    int deliveryDays
+  }
+
+  APPROVAL_WORKFLOW {
+    uuid id PK
+    uuid quotationId FK
+    enum currentStep
+    enum status
+  }
+
+  APPROVAL_STEP {
+    uuid id PK
+    uuid workflowId FK
+    int stepNumber
+    uuid approverId FK
+    enum decision
+    text remarks
+    timestamp decidedAt
+  }
+
+  PURCHASE_ORDER {
+    uuid id PK
+    string poNumber
+    uuid quotationId FK
+    uuid vendorId FK
+    decimal totalAmount
+    date poDate
+    enum status
+  }
+
+  INVOICE {
+    uuid id PK
+    string invoiceNumber
+    uuid poId FK
+    decimal subtotal
+    decimal cgst
+    decimal sgst
+    decimal grandTotal
+    date dueDate
+    enum status
+    string pdfUrl
+  }
+
+  ACTIVITY_LOG {
+    uuid id PK
+    uuid userId FK
+    string action
+    string entityType
+    uuid entityId
+    jsonb metadata
+    timestamp createdAt
+  }
+
+  USER ||--o{ RFQ : creates
+  USER ||--o{ APPROVAL_STEP : decides
+  VENDOR_CATEGORY ||--o{ VENDOR : categorizes
+  VENDOR ||--o{ RFQ_VENDOR : assigned
+  RFQ ||--o{ RFQ_ITEM : contains
+  RFQ ||--o{ RFQ_VENDOR : targets
+  RFQ ||--o{ QUOTATION : receives
+  VENDOR ||--o{ QUOTATION : submits
+  QUOTATION ||--o{ QUOTATION_ITEM : contains
+  QUOTATION ||--|| APPROVAL_WORKFLOW : triggers
+  APPROVAL_WORKFLOW ||--o{ APPROVAL_STEP : has
+  QUOTATION ||--o| PURCHASE_ORDER : generates
+  PURCHASE_ORDER ||--o| INVOICE : produces
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Design Principles</h3>
+        <ul class="styled">
+          <li>All PKs are UUIDs (v4) — no auto-increment integers exposed to clients</li>
+          <li>Soft-delete pattern (<code>deletedAt</code>) on Vendor and RFQ; hard-delete elsewhere</li>
+          <li>ActivityLog is append-only — no UPDATE or DELETE allowed at DB level via trigger</li>
+          <li>GSTIN stored as text with format validation at application layer</li>
+          <li>Money values: <code>Decimal(12,2)</code> — never <code>Float</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Indexing Strategy</h3>
+        <ul class="styled">
+          <li><code>users.email</code> — unique index</li>
+          <li><code>vendors.gstin</code> — unique index</li>
+          <li><code>rfqs.status, createdAt</code> — composite index for dashboard queries</li>
+          <li><code>quotations.rfqId, vendorId</code> — composite unique</li>
+          <li><code>activity_logs.userId, createdAt</code> — for audit trail pagination</li>
+          <li><code>invoices.status, dueDate</code> — for overdue detection</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 09  API ARCHITECTURE                         -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s9">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>API Architecture</h2>
+    </div>
+
+    <div class="callout callout-info">
+      <span>ℹ</span>
+      <span>All API routes follow RESTful conventions. Base URL: <code>https://api.vendorbridge.app/v1</code>. All responses use a consistent envelope: <code>{"success": bool, "data": T, "error": string | null, "meta": PaginationMeta | null}</code></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Module</th><th>Endpoint</th><th>Method</th><th>Auth</th><th>Roles</th></tr></thead>
+      <tbody>
+        <tr><td>Auth</td><td>/auth/login</td><td><span class="badge badge-blue">POST</span></td><td>None</td><td>All</td></tr>
+        <tr><td>Auth</td><td>/auth/refresh</td><td><span class="badge badge-blue">POST</span></td><td>Cookie</td><td>All</td></tr>
+        <tr><td>Auth</td><td>/auth/logout</td><td><span class="badge badge-blue">POST</span></td><td>JWT</td><td>All</td></tr>
+        <tr><td>Vendors</td><td>/vendors</td><td><span class="badge badge-green">GET</span> <span class="badge badge-blue">POST</span></td><td>JWT</td><td>Admin, Officer</td></tr>
+        <tr><td>Vendors</td><td>/vendors/:id</td><td><span class="badge badge-green">GET</span> <span class="badge badge-amber">PATCH</span> <span class="badge badge-red">DELETE</span></td><td>JWT</td><td>Admin, Officer</td></tr>
+        <tr><td>RFQs</td><td>/rfqs</td><td><span class="badge badge-green">GET</span> <span class="badge badge-blue">POST</span></td><td>JWT</td><td>Officer</td></tr>
+        <tr><td>RFQs</td><td>/rfqs/:id/publish</td><td><span class="badge badge-blue">POST</span></td><td>JWT</td><td>Officer</td></tr>
+        <tr><td>Quotations</td><td>/rfqs/:id/quotations</td><td><span class="badge badge-green">GET</span></td><td>JWT</td><td>Officer</td></tr>
+        <tr><td>Quotations</td><td>/quotations</td><td><span class="badge badge-blue">POST</span></td><td>JWT</td><td>Vendor</td></tr>
+        <tr><td>Quotations</td><td>/quotations/:id/compare</td><td><span class="badge badge-green">GET</span></td><td>JWT</td><td>Officer</td></tr>
+        <tr><td>Approvals</td><td>/approvals/:id/decide</td><td><span class="badge badge-blue">POST</span></td><td>JWT</td><td>Manager</td></tr>
+        <tr><td>Purchase Orders</td><td>/purchase-orders</td><td><span class="badge badge-green">GET</span></td><td>JWT</td><td>Officer, Vendor</td></tr>
+        <tr><td>Invoices</td><td>/invoices/:id/pdf</td><td><span class="badge badge-green">GET</span></td><td>JWT</td><td>Officer</td></tr>
+        <tr><td>Invoices</td><td>/invoices/:id/email</td><td><span class="badge badge-blue">POST</span></td><td>JWT</td><td>Officer</td></tr>
+        <tr><td>Reports</td><td>/reports/spend</td><td><span class="badge badge-green">GET</span></td><td>JWT</td><td>Admin, Manager</td></tr>
+        <tr><td>Activity</td><td>/activity-logs</td><td><span class="badge badge-green">GET</span></td><td>JWT</td><td>Admin, Officer</td></tr>
+      </tbody>
+    </table>
+
+    <div class="card">
+      <h3>API Design Conventions</h3>
+      <ul class="styled">
+        <li>Pagination via <code>?page=1&limit=20</code> on all list endpoints</li>
+        <li>Filtering via <code>?status=active&category=IT</code> query params</li>
+        <li>File uploads: multipart/form-data on dedicated <code>/upload</code> sub-routes</li>
+        <li>All mutation endpoints return the updated resource</li>
+        <li>HTTP 422 for Zod validation errors with field-level detail</li>
+        <li>Idempotency key header (<code>X-Idempotency-Key</code>) supported on invoice and PO creation</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 10  NOTIFICATION ARCHITECTURE                -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s10">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Notification Architecture</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Notification event flow</div>
+      <div class="mermaid">
+flowchart TD
+  E1[RFQ Published] --> NB[NotificationBus]
+  E2[Quotation Received] --> NB
+  E3[Approval Required] --> NB
+  E4[PO Generated] --> NB
+  E5[Invoice Created] --> NB
+  E6[Overdue Invoice] --> NB
+
+  NB --> NS[NotificationService]
+
+  NS --> DB1[(notifications\ntable)]
+  NS --> EMAIL[Resend Email\nService]
+
+  EMAIL --> T1[RFQ Invite\nEmail]
+  EMAIL --> T2[Approval\nRequest Email]
+  EMAIL --> T3[PO Confirmed\nEmail]
+  EMAIL --> T4[Invoice\nEmail + PDF]
+
+  DB1 --> FE[In-App Notification\nBell Icon / Poll]
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Email Templates (Resend)</h3>
+        <ul class="styled">
+          <li><strong>RFQ Invite</strong> — sent to vendors on RFQ publish with deadline and scope</li>
+          <li><strong>Approval Request</strong> — sent to L1/L2 approvers with quotation summary</li>
+          <li><strong>PO Confirmation</strong> — sent to vendor on PO generation</li>
+          <li><strong>Invoice</strong> — PDF attachment via Cloudinary signed URL</li>
+          <li><strong>Overdue Alert</strong> — scheduled job checks daily, triggers on due date+1</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>In-App Notifications</h3>
+        <ul class="styled">
+          <li>Stored in <code>notifications</code> table with <code>read/unread</code> status</li>
+          <li>Frontend polls <code>GET /notifications?unread=true</code> every 30s via TanStack Query</li>
+          <li>Future: upgrade to WebSocket or SSE for real-time delivery</li>
+          <li>Notifications scoped by <code>userId</code> — never cross-role leakage</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 11  FILE UPLOAD ARCHITECTURE                 -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s11">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2>File Upload Architecture</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ File upload flow (Cloudinary via backend)</div>
+      <div class="mermaid">
+sequenceDiagram
+  participant C as Client
+  participant API as Express API
+  participant MUL as Multer (Memory)
+  participant CLD as Cloudinary
+  participant DB as PostgreSQL
+
+  C->>API: POST /vendors/:id/upload (multipart/form-data)
+  API->>MUL: Buffer file in memory (max 10MB)
+  MUL->>API: File buffer ready
+  API->>API: Validate type (PDF/PNG/JPG only)
+  API->>CLD: cloudinary.uploader.upload_stream(buffer)
+  CLD-->>API: {secure_url, public_id, format}
+  API->>DB: Save secure_url to vendor.documentUrl
+  API-->>C: {url: secure_url}
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Use Case</th><th>Storage</th><th>Format</th><th>Size Limit</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>Vendor documents (GST cert, PAN)</td><td>Cloudinary</td><td>PDF, JPG, PNG</td><td>10 MB</td><td>Private signed URL</td></tr>
+        <tr><td>RFQ attachments</td><td>Cloudinary</td><td>PDF, DOCX, XLSX</td><td>25 MB</td><td>Private signed URL</td></tr>
+        <tr><td>Generated invoice PDF</td><td>Cloudinary</td><td>PDF</td><td>Auto</td><td>Signed URL (24h expiry)</td></tr>
+        <tr><td>User profile photo</td><td>Cloudinary</td><td>JPG, PNG, WEBP</td><td>5 MB</td><td>Public CDN URL</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <span>⚠</span>
+      <span>Never stream files directly from Cloudinary to clients with the API key exposed. Always generate signed URLs server-side with a short TTL (15–60 min) for sensitive documents like vendor certificates.</span>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 12  REPORTING ARCHITECTURE                   -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s12">
+    <div class="section-header">
+      <span class="section-num">12</span>
+      <h2>Reporting Architecture</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Report generation pipeline</div>
+      <div class="mermaid">
+flowchart LR
+  DB[(PostgreSQL\nraw tables)] --> AGG[Aggregation\nQueries via Prisma]
+  AGG --> CACHE[(Redis Cache\n1h TTL)]
+  CACHE --> SVC[ReportService]
+  SVC --> R1[Spend by Category]
+  SVC --> R2[Top Vendors by Spend]
+  SVC --> R3[Monthly Procurement Trend]
+  SVC --> R4[PO Fulfilment Rate]
+  SVC --> R5[Overdue Invoice Count]
+  R1 & R2 & R3 & R4 & R5 --> API[Reports API\n/reports/*]
+  API --> FE[Recharts\nDashboard]
+  API --> EXP[CSV Export\n/reports/export]
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Report</th><th>Data Source</th><th>Cache TTL</th><th>Export</th></tr></thead>
+      <tbody>
+        <tr><td>Spend by Category</td><td>SUM(invoice.grandTotal) GROUP BY vendor.category</td><td>1 hour</td><td>CSV</td></tr>
+        <tr><td>Top Vendors by Spend</td><td>SUM(invoice) JOIN vendor ORDER BY spend DESC LIMIT 10</td><td>1 hour</td><td>CSV</td></tr>
+        <tr><td>Monthly Trend</td><td>SUM(po.totalAmount) GROUP BY month(poDate)</td><td>1 hour</td><td>CSV</td></tr>
+        <tr><td>PO Fulfilment Rate</td><td>COUNT(po.status=FULFILLED) / COUNT(po) * 100</td><td>30 min</td><td>—</td></tr>
+        <tr><td>Overdue Invoices</td><td>COUNT(invoice WHERE dueDate &lt; NOW AND status != PAID)</td><td>15 min</td><td>—</td></tr>
+        <tr><td>Vendor Performance</td><td>AVG(quotation.deliveryDays), vendor.rating JOIN po</td><td>1 hour</td><td>CSV</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 13  DEPLOYMENT ARCHITECTURE                  -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s13">
+    <div class="section-header">
+      <span class="section-num">13</span>
+      <h2>Deployment Architecture</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Production deployment topology</div>
+      <div class="mermaid">
+graph TB
+  subgraph Internet
+    USER[End Users]
+  end
+
+  subgraph Vercel["Vercel (Frontend)"]
+    EDGE[Edge Network / CDN]
+    SSR[SSR Functions\nNext.js 15]
+    STATIC[Static Assets\nJS · CSS · Images]
+  end
+
+  subgraph Render["Render (Backend)"]
+    API[Express API\nNode.js Container]
+    CRON[Cron Jobs\nOverdue alerts]
+  end
+
+  subgraph Neon["Neon (PostgreSQL)"]
+    PRIMARY[(Primary DB)]
+    REPLICA[(Read Replica)]
+  end
+
+  subgraph Upstash["Upstash"]
+    REDIS[(Redis Cluster\nCache + Sessions)]
+  end
+
+  subgraph External["External SaaS"]
+    CLD[Cloudinary]
+    RESEND[Resend]
+  end
+
+  USER --> EDGE
+  EDGE --> SSR
+  EDGE --> STATIC
+  SSR --> API
+  API --> PRIMARY
+  API --> REPLICA
+  API --> REDIS
+  API --> CLD
+  API --> RESEND
+  CRON --> API
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card">
+        <h3>Frontend (Vercel)</h3>
+        <ul class="styled">
+          <li>Auto-deploy from <code>main</code> branch via GitHub Actions</li>
+          <li>Preview deployments on every PR</li>
+          <li>Edge middleware for auth redirects</li>
+          <li>ISR for report pages (60s revalidate)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Backend (Render)</h3>
+        <ul class="styled">
+          <li>Docker container (Node 20 Alpine)</li>
+          <li>Auto-deploy from <code>main</code> via GitHub Actions</li>
+          <li>Zero-downtime deploys with health checks</li>
+          <li>Private service — not publicly accessible</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Database (Neon)</h3>
+        <ul class="styled">
+          <li>Serverless PostgreSQL — auto-scales</li>
+          <li>Read replica for report queries</li>
+          <li>Daily automated backups (30-day retention)</li>
+          <li>Connection pooling via Neon's built-in PgBouncer</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>CI/CD Pipeline</h3>
+      <pre style="margin:8px 0 0;background:transparent;border:none;padding:0;font-size:11.5px;">
+push to main
+  ├── lint + typecheck (tsc --noEmit)
+  ├── unit tests (Vitest)
+  ├── build apps/web → deploy to Vercel
+  ├── build apps/api → build Docker image
+  │   └── push to Render registry → rolling deploy
+  └── run prisma migrate deploy (on API startup)
+      </pre>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 14  SECURITY ARCHITECTURE                    -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s14">
+    <div class="section-header">
+      <span class="section-num">14</span>
+      <h2>Security Architecture</h2>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Transport & Headers</h3>
+        <ul class="styled">
+          <li>TLS 1.3 enforced end-to-end (Vercel + Render auto-provision)</li>
+          <li>Helmet.js sets CSP, HSTS, X-Frame-Options, X-Content-Type-Options</li>
+          <li>CORS: whitelist <code>vendorbridge.app</code> origin only</li>
+          <li>Refresh token in <code>HttpOnly; Secure; SameSite=Strict</code> cookie</li>
+          <li>Access token in memory (never localStorage)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Input Validation</h3>
+        <ul class="styled">
+          <li>All API inputs validated with Zod schemas before business logic</li>
+          <li>Prisma parameterized queries — no raw SQL (SQL injection impossible)</li>
+          <li>File upload: MIME type + magic-bytes validation (not just extension)</li>
+          <li>Max upload size enforced at Multer + Nginx level</li>
+          <li>GSTIN format validated with regex at schema layer</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Rate Limiting</h3>
+        <ul class="styled">
+          <li><code>express-rate-limit</code> backed by Upstash Redis</li>
+          <li>Auth endpoints: 5 req/15min per IP (brute-force protection)</li>
+          <li>General API: 100 req/min per authenticated user</li>
+          <li>PDF generation: 10 req/min (CPU-intensive endpoint)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Data Protection</h3>
+        <ul class="styled">
+          <li>ActivityLog is immutable — DB trigger blocks UPDATE/DELETE</li>
+          <li>Sensitive env vars in Vercel/Render secrets — never in codebase</li>
+          <li>Cloudinary signed URLs for all private documents (not public)</li>
+          <li>PII fields (email, phone) indexed — never logged in plaintext</li>
+          <li>No vendor can see another vendor's quotation (enforced in service layer)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Security layers from request to data</div>
+      <div class="mermaid">
+flowchart LR
+  R[HTTP Request] --> TLS[TLS 1.3\nTermination]
+  TLS --> RL[Rate Limiter\nRedis-backed]
+  RL --> CORS[CORS\nOrigin Check]
+  CORS --> HELM[Helmet\nSecurity Headers]
+  HELM --> JWT[JWT\nVerification]
+  JWT --> RBAC[RBAC\nPermission Check]
+  RBAC --> ZOD[Zod\nSchema Validation]
+  ZOD --> SVC[Service Layer\nOwnership Check]
+  SVC --> ORM[Prisma ORM\nParameterized Queries]
+  ORM --> DB[(PostgreSQL)]
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <!-- 15  SCALABILITY STRATEGY                     -->
+  <!-- ──────────────────────────────────────────── -->
+  <section class="section" id="s15">
+    <div class="section-header">
+      <span class="section-num">15</span>
+      <h2>Scalability Strategy</h2>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="label">▸ Scale-up path (Phase 1 → Phase 3)</div>
+      <div class="mermaid">
+graph LR
+  subgraph Phase1["Phase 1 — MVP"]
+    P1A[Single Express\nInstance]
+    P1B[Neon Serverless\nSingle DB]
+    P1C[Upstash Redis\nSingle Region]
+  end
+
+  subgraph Phase2["Phase 2 — Growth"]
+    P2A[Render Auto-scale\n2–5 instances]
+    P2B[Neon + Read\nReplica]
+    P2C[Background Job Queue\nBullMQ on Redis]
+    P2D[PDF + Email\nAsync via Queue]
+  end
+
+  subgraph Phase3["Phase 3 — Enterprise"]
+    P3A[Microservices\nSplit by Domain]
+    P3B[Event Bus\nKafka / AWS SNS]
+    P3C[CQRS + Read\nModels for Reports]
+    P3D[CDN Edge Cache\nfor Report APIs]
+  end
+
+  Phase1 --> Phase2 --> Phase3
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Concern</th><th>MVP Strategy</th><th>Scale Strategy</th></tr></thead>
+      <tbody>
+        <tr><td>Database read load</td><td>Single Neon DB</td><td>Read replica for reports; connection pooling via PgBouncer</td></tr>
+        <tr><td>PDF generation</td><td>Synchronous in request</td><td>BullMQ queue → worker → Cloudinary upload → notify user</td></tr>
+        <tr><td>Email sending</td><td>Synchronous Resend call</td><td>BullMQ queue with retry + dead-letter handling</td></tr>
+        <tr><td>Report queries</td><td>Live DB aggregation + Redis cache</td><td>Materialized views refreshed on schedule; CQRS read models</td></tr>
+        <tr><td>API throughput</td><td>Single Render container</td><td>Render auto-scale 2–10 instances; stateless JWT enables this</td></tr>
+        <tr><td>Session storage</td><td>Upstash Redis single-region</td><td>Upstash multi-region replication (built-in feature)</td></tr>
+        <tr><td>File uploads</td><td>Multer → Cloudinary (sync)</td><td>Presigned Cloudinary upload (client-direct) for large files</td></tr>
+        <tr><td>Multi-tenancy</td><td>Row-level <code>orgId</code> scoping</td><td>Schema-per-tenant or separate Neon branch per org (enterprise)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-success">
+      <span>✓</span>
+      <span>The modular monolith structure is critical here — internal service boundaries make it possible to extract any module into a microservice later without rewriting business logic. Follow the Strangler Fig pattern when decomposing.</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card">
+      <h3>Key Architecture Decisions Summary</h3>
+      <ul class="styled">
+        <li><strong>Monorepo (Turborepo)</strong> — shared types between Next.js and Express eliminate API contract drift</li>
+        <li><strong>Modular Monolith (not microservices)</strong> — right size for a hackathon MVP; clean boundaries enable future decomposition</li>
+        <li><strong>Neon Serverless PostgreSQL</strong> — scales to zero for dev/staging; branching per PR for database migrations preview</li>
+        <li><strong>Upstash Redis</strong> — HTTP-based, works from edge/serverless without persistent TCP connections</li>
+        <li><strong>Prisma ORM</strong> — type-safe queries, migration management, and Neon adapter built-in</li>
+        <li><strong>JWT RS256 asymmetric signing</strong> — public key can be distributed to edge functions for token verification without calling the API</li>
+        <li><strong>ActivityLog immutability via DB trigger</strong> — compliance and audit trail integrity at the database level, not just application level</li>
+        <li><strong>Cloudinary signed URLs</strong> — vendor-sensitive documents never served with a permanent public URL</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<button id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background: '#0f1628',
+      primaryColor: '#1a2e50',
+      primaryTextColor: '#e2e8f8',
+      primaryBorderColor: '#3b7fff',
+      lineColor: '#3b7fff',
+      secondaryColor: '#0f1628',
+      tertiaryColor: '#151d35',
+      fontFamily: 'Sora, sans-serif',
+      fontSize: '13px',
+      edgeLabelBackground: '#0f1628',
+      clusterBkg: '#0f1628',
+      clusterBorder: '#1e2d50',
+      titleColor: '#e2e8f8',
+      actorBkg: '#1a2e50',
+      actorBorder: '#3b7fff',
+      actorTextColor: '#e2e8f8',
+      actorLineColor: '#3b7fff',
+      signalColor: '#8fa4cc',
+      signalTextColor: '#e2e8f8',
+      labelBoxBkgColor: '#151d35',
+      labelBoxBorderColor: '#1e2d50',
+      labelTextColor: '#e2e8f8',
+      loopTextColor: '#8fa4cc',
+      noteBorderColor: '#263654',
+      noteBkgColor: '#151d35',
+      noteTextColor: '#e2e8f8',
+      activationBorderColor: '#3b7fff',
+      activationBkgColor: '#1a2e50',
+    },
+    flowchart: { curve: 'basis', htmlLabels: true },
+    er: { useMaxWidth: true },
+    sequence: { useMaxWidth: true },
+  });
+
+  const nav = document.querySelectorAll('.nav-item');
+  const sections = document.querySelectorAll('.section');
+  const backTop = document.getElementById('back-top');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        nav.forEach(n => n.classList.remove('active'));
+        const match = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  window.addEventListener('scroll', () => {
+    backTop.classList.toggle('visible', window.scrollY > 400);
+  });
+</script>
+</body>
+</html>

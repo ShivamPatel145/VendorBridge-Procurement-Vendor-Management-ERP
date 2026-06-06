@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../shared/errors/AppError';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
+import prisma from '../config/database';
 
 export const errorHandler = (
   err: unknown,
@@ -30,7 +31,7 @@ export const errorHandler = (
     return;
   }
 
-  // Prisma unique constraint
+  // Prisma known request errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {
       res.status(409).json({
@@ -48,6 +49,27 @@ export const errorHandler = (
       });
       return;
     }
+  }
+
+  // Neon DB auto-suspend: "terminating connection due to administrator command"
+  // Neon free tier suspends after ~5 min inactivity.
+  // The first request after resume hits this — tell client to retry in 2-3 seconds.
+  const errMsg = err instanceof Error ? err.message : String(err);
+  const isNeonSuspend =
+    errMsg.includes('terminating connection') ||
+    errMsg.includes('E57P01') ||
+    errMsg.includes('Server has closed the connection') ||
+    err instanceof Prisma.PrismaClientInitializationError;
+
+  if (isNeonSuspend) {
+    console.warn('⚠️  Neon DB waking from suspension — client should retry.');
+    prisma.$disconnect().then(() => prisma.$connect()).catch(() => {});
+    res.status(503).json({
+      success: false,
+      code: 'DB_WAKING',
+      message: 'Database is waking up from sleep. Please retry in 2-3 seconds.',
+    });
+    return;
   }
 
   // Unhandled errors

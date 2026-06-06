@@ -9,6 +9,13 @@ build/
 .next/
 out/
 
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
 # Environment files
 .env
 .env.local

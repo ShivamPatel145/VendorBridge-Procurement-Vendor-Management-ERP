@@ -17,12 +17,17 @@
     "db:studio": "cd apps/api && npx prisma studio"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
     "prettier": "^3.0.0",
+    "turbo": "^2.0.0",
     "typescript": "^5.4.0"
   },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.38.0",
+    "pg": "^8.21.0",
+    "resend": "^6.12.4"
   }
 }

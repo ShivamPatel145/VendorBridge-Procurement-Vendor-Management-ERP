@@ -1,28 +1,28 @@
 import { Router } from 'express';
+import { AuthController } from './auth.controller';
+import { authenticate } from '../../middlewares/authenticate';
 
 export const authRoutes = Router();
 
 // POST /api/v1/auth/register
-authRoutes.post('/register', (_req, res) => {
-  res.json({ success: true, message: 'Auth register — TODO: implement' });
-});
+authRoutes.post('/register', AuthController.register);
 
 // POST /api/v1/auth/login
-authRoutes.post('/login', (_req, res) => {
-  res.json({ success: true, message: 'Auth login — TODO: implement' });
-});
+authRoutes.post('/login', AuthController.login);
 
 // POST /api/v1/auth/refresh
-authRoutes.post('/refresh', (_req, res) => {
-  res.json({ success: true, message: 'Auth refresh — TODO: implement' });
-});
+authRoutes.post('/refresh', AuthController.refresh);
 
 // POST /api/v1/auth/logout
-authRoutes.post('/logout', (_req, res) => {
-  res.json({ success: true, message: 'Auth logout — TODO: implement' });
-});
+authRoutes.post('/logout', authenticate, AuthController.logout);
 
 // GET /api/v1/auth/me
-authRoutes.get('/me', (_req, res) => {
-  res.json({ success: true, message: 'Auth me — TODO: implement' });
-});
+authRoutes.get('/me', authenticate, AuthController.me);
+
+// POST /api/v1/auth/forgot-password
+authRoutes.post('/forgot-password', AuthController.forgotPassword);
+
+// POST /api/v1/auth/reset-password
+authRoutes.post('/reset-password', AuthController.resetPassword);
+
+export default authRoutes;

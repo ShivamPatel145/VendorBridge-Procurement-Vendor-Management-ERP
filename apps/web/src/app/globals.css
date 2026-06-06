@@ -6,20 +6,47 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Forcing dark mode variables by default for the premium look, but maintaining light mode fallback just in case */
+    --background: 216 29% 97%;       /* slate-50 */
+    --foreground: 215 28% 17%;       /* slate-900 */
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+    --border: 214 32% 91%;
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Exact colors requested: #0B0F14 bg, #111827 card */
+    --background: 213 29% 6%;        /* #0B0F14 */
+    --foreground: 0 0% 98%;          /* Zinc 50 */
+    --card: 221 39% 11%;             /* #111827 */
+    --card-foreground: 0 0% 98%;
+    --border: 215 28% 17%;           /* #1F2937 */
   }
 
   * {
-    @apply border-border;
+    box-sizing: border-box;
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px hsl(var(--background)) inset;
+    -webkit-text-fill-color: hsl(var(--foreground));
+    caret-color: hsl(var(--foreground));
   }
 }
+
