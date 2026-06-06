@@ -49,7 +49,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (values: LoginForm) => {
-    login.mutate(values);
+    login.mutate(values as { email: string; password: string });
   };
 
   const fillDemo = (email: string, pass: string) => {

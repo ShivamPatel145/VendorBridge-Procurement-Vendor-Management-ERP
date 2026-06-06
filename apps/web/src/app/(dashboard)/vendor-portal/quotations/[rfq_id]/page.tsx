@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Save, Send, Plus, Trash2 } from 'lucide-react';
@@ -27,7 +27,8 @@ type QuotationItem = {
   deliveryDays: string;
 };
 
-export default function SubmitQuotationPage({ params }: { params: { rfq_id: string } }) {
+export default function SubmitQuotationPage({ params }: { params: Promise<{ rfq_id: string }> }) {
+  const { rfq_id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [gstPercent, setGstPercent] = useState('18');
