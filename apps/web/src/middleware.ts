@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const PUBLIC_ROUTES = ['/login'];
+const PUBLIC_ROUTES = ['/login', '/'];
 
 const ROLE_ROUTES: Record<string, string[]> = {
   VENDOR: ['/vendor-portal'],

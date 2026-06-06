@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
         {/* Chart Area */}
-        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+        <div className="lg:col-span-2 bg-app-card border border-app-border rounded-xl shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-zinc-900 dark:text-white">Procurement Spend Trend</h3>
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Approval Queue */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm flex flex-col">
+        <div className="bg-app-card border border-app-border rounded-xl shadow-sm flex flex-col">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
             <h3 className="font-semibold text-zinc-900 dark:text-white">Action Required</h3>
             <p className="text-xs text-zinc-500 mt-1">Pending items needing your review</p>
@@ -109,7 +109,7 @@ export default function DashboardPage() {
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
         {/* Recent RFQs */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-app-card border border-app-border rounded-xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800">
             <h3 className="font-semibold text-zinc-900 dark:text-white">Recent RFQs</h3>
             <a href="/rfqs" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm font-medium transition-colors">View all &rarr;</a>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent POs */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-app-card border border-app-border rounded-xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800">
             <h3 className="font-semibold text-zinc-900 dark:text-white">Recent Purchase Orders</h3>
             <a href="/purchase-orders" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm font-medium transition-colors">View all &rarr;</a>

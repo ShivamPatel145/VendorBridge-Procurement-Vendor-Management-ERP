@@ -6,20 +6,22 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;       /* Zinc 50 or white */
-    --foreground: 240 10% 3.9%;    /* Zinc 950 */
+    /* Forcing dark mode variables by default for the premium look, but maintaining light mode fallback just in case */
+    --background: 216 29% 97%;       /* slate-50 */
+    --foreground: 215 28% 17%;       /* slate-900 */
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --border: 240 5.9% 90%;
+    --card-foreground: 215 28% 17%;
+    --border: 214 32% 91%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 240 10% 3.9%;    /* Zinc 950 */
-    --foreground: 0 0% 98%;        /* Zinc 50 */
-    --card: 240 5.2% 11.4%;        /* Zinc 900 */
+    /* Exact colors requested: #0B0F14 bg, #111827 card */
+    --background: 213 29% 6%;        /* #0B0F14 */
+    --foreground: 0 0% 98%;          /* Zinc 50 */
+    --card: 221 39% 11%;             /* #111827 */
     --card-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;      /* Zinc 800 */
+    --border: 215 28% 17%;           /* #1F2937 */
   }
 
   * {

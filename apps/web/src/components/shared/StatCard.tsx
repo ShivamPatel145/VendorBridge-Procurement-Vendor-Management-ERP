@@ -21,7 +21,7 @@ const colorMap = {
 export default function StatCard({ title, value, change, icon: Icon, color = 'emerald' }: StatCardProps) {
   const c = colorMap[color] || colorMap.zinc;
   return (
-    <div className={cn('bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 flex items-start justify-between shadow-sm transition-shadow hover:shadow-md min-h-[120px]', c.border)}>
+    <div className={cn('bg-app-card border border-app-border rounded-xl p-5 flex items-start justify-between shadow-sm transition-shadow hover:shadow-md min-h-[120px]', c.border)}>
       <div className="flex-1 min-w-0 pr-4">
         <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium truncate">{title}</p>
         <p className="text-zinc-900 dark:text-white text-2xl font-bold mt-1 tracking-tight truncate">{value}</p>
